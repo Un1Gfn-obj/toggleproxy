@@ -7,6 +7,59 @@
 
 #define COUNT 9
 
+static CFDictionaryRef checkInt_dict=NULL;
+#define checkInt(K,V) checkInt0(CFSTR(K),V)
+static void checkInt0(const void *key,const int64_t value){
+  assert(CFDictionaryContainsKey(checkInt_dict,key));
+  CFTypeRef r=CFDictionaryGetValue(checkInt_dict,key); // CFShow(r);
+  assert(CFGetTypeID(r)==CFNumberGetTypeID());
+  CFNumberRef n=r;
+  int64_t v=-1;
+  assert(CFNumberGetType(n)==kCFNumberSInt64Type&&
+         CFNumberGetByteSize(n)==64/8&&
+         CFNumberGetValue(n,kCFNumberSInt64Type,&v)&&
+         v==value);
+}
+
+static void cfd(){
+
+  // https://developer.apple.com/documentation/corefoundation?language=objc
+  // https://developer.apple.com/documentation/corefoundation/cfdictionary?language=objc
+  CFDictionaryRef d=CFNetworkCopySystemProxySettings();
+  assert(d);
+  assert(CFDictionaryGetCount(d)==COUNT);
+
+  checkInt_dict=d;
+  /* [0] */ checkInt("HTTPEnable",+1); // HTTPEnable CFNumber +1
+  /* [1] */ checkInt("HTTPPort",+8080);
+  /* [2] */ // checkInt("",);
+  /* [3] */ // checkInt("",);
+  /* [4] */ checkInt("FTPPassive",+1);
+  /* [5] */ checkInt("HTTPSPort",+8080);
+  /* [6] */ // checkInt("",);
+  /* [7] */ checkInt("HTTPSEnable",+1);
+  /* [8] */ // checkInt("",);
+  checkInt_dict=NULL;
+  fprintf(stderr,"\n");
+
+  const void *keys[COUNT],*values[COUNT];
+  bzero(keys,COUNT*sizeof(void*));
+  bzero(values,COUNT*sizeof(void*));
+  CFDictionaryGetKeysAndValues(d,keys,values);
+  // CFDictionaryApplyFunction
+
+  // for( const int *p=(int[]){0,1,2,3,4,5,6,7,8,-777}; *p>=0; ++p ){
+  for( const int *p=(int[]){2,3,6,8,-777}; *p>=0; ++p ){
+    assert(keys[*p]&&values[*p]);
+    fprintf(stderr,"[%d] ",*p);CFShow(keys[*p]);
+    CFShow(values[*p]);
+    fprintf(stderr,"\n");
+  }
+
+  CFRelease(d);d=NULL;
+
+}
+
 /*static void nsd(){@autoreleasepool{
   NSDictionary *nsd=(__bridge NSDictionary*)CFNetworkCopySystemProxySettings();
   NSDictionary *nsd=CFBridgingRelease(CFNetworkCopySystemProxySettings());
@@ -15,48 +68,6 @@
   printf("%d\n",s.HTTPEnabled);
   printf("%d\n",proxySettings.HTTPEnabled);
 }}*/
-
-// https://developer.apple.com/documentation/corefoundation?language=objc
-// https://developer.apple.com/documentation/corefoundation/cfdictionary?language=objc
-static void cfd(){
-
-  CFDictionaryRef d=CFNetworkCopySystemProxySettings();
-  assert(d);
-  assert(CFDictionaryGetCount(d)==COUNT);
-
-  const void *keys[COUNT],*values[COUNT];
-  bzero(keys,COUNT*sizeof(void*));
-  bzero(values,COUNT*sizeof(void*));
-  CFDictionaryGetKeysAndValues(d,keys,values);
-  // CFDictionaryApplyFunction
-
-  // assert(!keys[COUNT]);
-  // assert(!values[COUNT]);
-  // assert(keys[COUNT-1]);
-  // assert(values[COUNT-1]);
-
-  // HTTPEnable CFNumber +1
-  assert(CFDictionaryContainsKey(d,CFSTR("HTTPEnable")));
-  CFTypeRef r=CFDictionaryGetValue(d,CFSTR("HTTPEnable")); // CFShow(r);
-  assert(CFGetTypeID(r)==CFNumberGetTypeID());
-  CFNumberRef n=r;
-  int64_t v=-1;
-  assert(CFNumberGetType(n)==kCFNumberSInt64Type&&
-         CFNumberGetByteSize(n)==64/8&&
-         CFNumberGetValue(n,kCFNumberSInt64Type,&v)&&
-         v==1);
-
-  fprintf(stderr,"\n");
-  for(int i=1;i<COUNT;++i){
-    assert(keys[i]&&values[i]);
-    CFShow(keys[i]);
-    CFShow(values[i]);
-    fprintf(stderr,"\n");
-  }
-
-  CFRelease(d);d=NULL;
-
-}
 
 // int main(int argc,char *argv[],char *envp[]){@autoreleasepool{
 int main(){
