@@ -7,6 +7,8 @@
 
 #define COUNT 9
 
+// Use "Global Proxy Settings Constants" instead?
+// https://developer.apple.com/documentation/cfnetwork/global_proxy_settings_constants?language=objc
 static CFDictionaryRef checkInt_dict=NULL;
 #define checkInt(K,V) checkInt0(CFSTR(K),V)
 static void checkInt0(const void *key,const int64_t value){
