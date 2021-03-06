@@ -8,11 +8,19 @@ PC
 
 ```plain
 $ source ~/ios/ios.bashrc
-$ make clean && rm -rfv packages/ .theos/ && make && ssh2 rm -fv \~/toggleproxy && scp2 .theos/obj/debug/toggleproxy && ssh2 \~/toggleproxy
+$ make purge all && ssh2 rm -fv \~/toggleproxy && scp2 .theos/obj/debug/toggleproxy && ssh2 \~/toggleproxy
 ```
 
 iOS
 
 ```plain
 ./toggleproxy
+```
+
+https://lldb.llvm.org/use/map.html
+
+```plain
+bt all
+frame select 2
+source list
 ```
