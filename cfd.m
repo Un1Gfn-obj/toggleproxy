@@ -52,14 +52,16 @@ static void check(const void *key,const int64_t value,CFTypeID typeid){
            CFNumberGetValue(n,kCFNumberSInt64Type,&v)&&
            v==value);
   }else if(typeid==CFStringGetTypeID()){
-    const char *const value=(char*)value; // -Wshadow
-    // const unsigned long sz=strlen(value)+1;
+    // Shadowing causes segfault, use a different identifier
+    // const char *value=(const char*)value;
+    const char *str=(const char*)value;
+    const unsigned long sz=strlen(str)+1;
     const CFStringRef s=r;
     assert(strlen(PROXY_IP)==CFStringGetLength(s));
-    char buffer[INET6_ADDRSTRLEN];
-    bzero(buffer,INET6_ADDRSTRLEN*sizeof(char));
-    assert(CFStringGetCString(s,buffer,INET6_ADDRSTRLEN,kCFStringEncodingASCII));
-    assert(!buffer[INET6_ADDRSTRLEN-1]);
+    char buffer[sz];
+    bzero(buffer,sz*sizeof(char));
+    assert(CFStringGetCString(s,buffer,sz,kCFStringEncodingASCII));
+    assert(!buffer[sz-1]);
     assert(0==strcmp(PROXY_IP,buffer));
     // assert(CFStringGetCString(s,buffer,sz,kCFStringEncodingASCII)&&
     //        !buffer[sz-1]&&
@@ -124,6 +126,7 @@ void cfd(){
   for( const int *p=(int[]){3,8,-777}; *p>=0; ++p ){
     assert(keys[*p]&&values[*p]);
     fprintf(stderr,"[%d] ",*p);CFShow(keys[*p]);
+    // CFCopyTypeIDDescription(CFGetTypeID(values[*p]));
     CFShow(values[*p]);
     fprintf(stderr,"\n");
   }
