@@ -4,13 +4,12 @@
 #import <Foundation/Foundation.h>
 // #import <NetworkExtension/NEProxySettings.h>
 
-#define DCOUNT 9
 #define ACOUNT 2
 #define eprintf(...) fprintf(stderr,__VA_ARGS__)
 
 // Use "Global Proxy Settings Constants" instead?
 // https://developer.apple.com/documentation/cfnetwork/global_proxy_settings_constants?language=objc
-static CFDictionaryRef check_dict=NULL;
+static CFDictionaryRef globCurDict=NULL;
 
 /*static void c2cf_strequ(){
 
@@ -59,9 +58,9 @@ static_assert(sizeof(int64_t)==sizeof(char*),"");
 #define check1nt(K,V) check(false,CFSTR(K),          V ,CFNumberGetTypeID())
 #define check8tr(K,V) check(false,CFSTR(K),(int64_t)(V),CFStringGetTypeID())
 #define checkTyp(K,T) check(true ,CFSTR(K),          0 ,                T  ) // Check value type only
-static void check(bool type_only,CFStringRef key,const int64_t value,CFTypeID typeid){
-  assert(CFDictionaryContainsKey(check_dict,key));
-  const CFTypeRef r=CFDictionaryGetValue(check_dict,key); // CFShow(r);
+static CFTypeRef check(Boolean type_only,CFStringRef key,const int64_t value,CFTypeID typeid){
+  assert(CFDictionaryContainsKey(globCurDict,key));
+  const CFTypeRef r=CFDictionaryGetValue(globCurDict,key); // CFShow(r);
   assert(r&&CFGetTypeID(r)==typeid);
   // if(CFGetTypeID(r)!=typeid){
   //   CFStringRef s=CFCopyTypeIDDescription(CFGetTypeID(r));
@@ -86,11 +85,12 @@ static void check(bool type_only,CFStringRef key,const int64_t value,CFTypeID ty
     assert(false);
   }
   CFRelease(key);
+  return r;
 }
 
 #define checkEcp(K) checkEcp0(CFSTR(K))
 static void checkEcp0(CFStringRef key){
-  const CFTypeRef r=CFDictionaryGetValue(check_dict,key);assert(r);
+  const CFTypeRef r=CFDictionaryGetValue(globCurDict,key);assert(r);
   assert(CFGetTypeID(r)==CFArrayGetTypeID());
   CFArrayRef a=r;
   assert(CFArrayGetCount(a)==ACOUNT);
@@ -103,31 +103,27 @@ static void checkEcp0(CFStringRef key){
   CFRelease(key);
 }
 
-void cfd(){
+static CFTypeRef cfd0(Boolean inner){
 
-  // https://developer.apple.com/documentation/corefoundation?language=objc
-  // https://developer.apple.com/documentation/corefoundation/cfdictionary?language=objc
-  CFDictionaryRef d=CFNetworkCopySystemProxySettings();
-  assert(d);
-  // CFShow(d);/*exit(0);*/
-  assert(CFDictionaryGetCount(d)==DCOUNT);
+  // assert(!inner);
+  const CFIndex dcount=inner?8:9;
+  assert(CFDictionaryGetCount(globCurDict)==dcount);
 
-  check_dict=d;
-  /* [0] */ check1nt("HTTPEnable",+1); // HTTPEnable CFNumber +1
-  /* [1] */ check1nt("HTTPPort",+8080);
-  /* [2] */ check8tr("HTTPSProxy",PROXY_IP);
-  /* [3] */ checkEcp("ExceptionsList");
-  /* [4] */ check1nt("FTPPassive",+1);
-  /* [5] */ check1nt("HTTPSPort",+8080);
-  /* [6] */ check8tr("HTTPProxy",PROXY_IP);
-  /* [7] */ check1nt("HTTPSEnable",+1);
-  /* [8] */ checkTyp("__SCOPED__",CFDictionaryGetTypeID());
-  check_dict=NULL;
-  eprintf("\n");
+  // eprintf("A\n");
+  check1nt("FTPPassive",+1);
+  check1nt("HTTPEnable",+1); // HTTPEnable CFNumber +1
+  check1nt("HTTPSEnable",+1);
+  check1nt("HTTPPort",+8080);
+  check1nt("HTTPSPort",+8080);
+  check8tr("HTTPProxy",PROXY_IP);
+  check8tr("HTTPSProxy",PROXY_IP);
+  checkEcp("ExceptionsList");
+  // eprintf("B\n");
+  return inner?NULL:checkTyp("__SCOPED__",CFDictionaryGetTypeID());
 
-  // const void *keys[DCOUNT],*values[DCOUNT];
-  // bzero(keys,DCOUNT*sizeof(void*));
-  // bzero(values,DCOUNT*sizeof(void*));
+  // const void *keys[dcount],*values[dcount];
+  // bzero(keys,dcount*sizeof(void*));
+  // bzero(values,dcount*sizeof(void*));
   // CFDictionaryGetKeysAndValues(d,keys,values);
   // // CFDictionaryApplyFunction
   // // for( const int *p=(int[]){0,1,2,3,4,5,6,7,8,-777}; *p>=0; ++p ){
@@ -139,7 +135,33 @@ void cfd(){
   //   fprintf(stderr,"\n");
   // }
 
-  CFRelease(d);d=NULL;
+}
+
+void cfd(){
+
+  // https://developer.apple.com/documentation/corefoundation?language=objc
+  // https://developer.apple.com/documentation/corefoundation/cfdictionary?language=objc
+  CFTypeRef r=CFNetworkCopySystemProxySettings();
+  assert(r&&CFGetTypeID(r)==CFDictionaryGetTypeID());
+  // CFShow(d);exit(0);
+
+  // globCurDict <- Outer L0 {}
+  globCurDict=(CFDictionaryRef)r;
+  // CFShow(globCurDict);
+
+  // globCurDict <- Middle L1 {en0={}}
+  globCurDict=cfd0(false); // outer
+  // CFShow(globCurDict);
+
+  // globCurDict <- Inner L2 {}
+  assert(CFDictionaryGetCount(globCurDict)==1);
+  globCurDict=checkTyp("en0",CFDictionaryGetTypeID());
+  // CFShow(globCurDict);
+
+  globCurDict=cfd0(true); // inner
+  assert(!globCurDict);
+
+  CFRelease(r);r=NULL;
 
 }
 

@@ -26,8 +26,10 @@ int main(){
 
   eprintf("\n");
   buildinfo();
+  eprintf("\n");
 
   cfd();
+  eprintf("Proxy is on. Exit normally.\n");
 
   eprintf("\n");
   return 0;
