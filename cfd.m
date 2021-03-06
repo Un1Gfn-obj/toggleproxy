@@ -1,15 +1,16 @@
 #include <netinet/in.h> // INET6_ADDRSTRLEN
+
 #include "./secret.h"
+#include "./status.h"
 
 #import <Foundation/Foundation.h>
-// #import <NetworkExtension/NEProxySettings.h>
 
 #define ACOUNT 2
 #define eprintf(...) fprintf(stderr,__VA_ARGS__)
 
-// Use "Global Proxy Settings Constants" instead?
-// https://developer.apple.com/documentation/cfnetwork/global_proxy_settings_constants?language=objc
 static CFDictionaryRef globCurDict=NULL;
+
+static Status status=UNKNOWN;
 
 /*static void c2cf_strequ(){
 
@@ -62,12 +63,6 @@ static CFTypeRef check(Boolean type_only,CFStringRef key,const int64_t value,CFT
   assert(CFDictionaryContainsKey(globCurDict,key));
   const CFTypeRef r=CFDictionaryGetValue(globCurDict,key); // CFShow(r);
   assert(r&&CFGetTypeID(r)==typeid);
-  // if(CFGetTypeID(r)!=typeid){
-  //   CFStringRef s=CFCopyTypeIDDescription(CFGetTypeID(r));
-  //   CFShow(s);
-  //   CFRelease(s);
-  //   assert(false);
-  // }
   if(type_only){
     assert(value==0);
   }else if(typeid==CFNumberGetTypeID()){
@@ -78,9 +73,9 @@ static CFTypeRef check(Boolean type_only,CFStringRef key,const int64_t value,CFT
            CFNumberGetValue(n,kCFNumberSInt64Type,&v)&&
            v==value);
   }else if(typeid==CFStringGetTypeID()){
+    // Shadowing causes segfault, use a different identifier
+    // const char *value=(const char*)value;
     cf2c_strequ((CFStringRef)r,(const char*)value);
-    // // Shadowing causes segfault, use a different identifier
-    // // const char *value=(const char*)value;
   }else{
     assert(false);
   }
@@ -103,23 +98,32 @@ static void checkEcp0(CFStringRef key){
   CFRelease(key);
 }
 
-static CFTypeRef cfd0(Boolean inner){
+static CFTypeRef cfd0(Boolean outer){
 
-  // assert(!inner);
-  const CFIndex dcount=inner?8:9;
-  assert(CFDictionaryGetCount(globCurDict)==dcount);
+  CFIndex dcount=CFDictionaryGetCount(globCurDict);
 
-  // eprintf("A\n");
-  check1nt("FTPPassive",+1);
-  check1nt("HTTPEnable",+1); // HTTPEnable CFNumber +1
-  check1nt("HTTPSEnable",+1);
-  check1nt("HTTPPort",+8080);
-  check1nt("HTTPSPort",+8080);
-  check8tr("HTTPProxy",PROXY_IP);
-  check8tr("HTTPSProxy",PROXY_IP);
-  checkEcp("ExceptionsList");
-  // eprintf("B\n");
-  return inner?NULL:checkTyp("__SCOPED__",CFDictionaryGetTypeID());
+  if(outer)switch(dcount){
+    case  0:status=DISCONNECTED ;return NULL;break;
+    case  3:status=CONNECTED_OFF            ;break;
+    case  9:status=CONNECTED_ON             ;break;
+    default:assert(false);                  ;break;
+  }else switch(dcount){
+    case  2:assert(status==CONNECTED_OFF)   ;break;
+    case  8:assert(status==CONNECTED_ON)    ;break;
+    default:assert(false);                  ;break;
+  }
+
+  /*                  */ // eprintf("A\n");
+  /*                  */ checkEcp("ExceptionsList");
+  /*                  */ check1nt("FTPPassive",+1);
+  (status==CONNECTED_ON)?check1nt("HTTPEnable",+1):0; // HTTPEnable CFNumber +1
+  (status==CONNECTED_ON)?check1nt("HTTPSEnable",+1):0;
+  (status==CONNECTED_ON)?check1nt("HTTPPort",+8080):0;
+  (status==CONNECTED_ON)?check1nt("HTTPSPort",+8080):0;
+  (status==CONNECTED_ON)?check8tr("HTTPProxy",PROXY_IP):0;
+  (status==CONNECTED_ON)?check8tr("HTTPSProxy",PROXY_IP):0;
+  /*                  */ // eprintf("B\n");
+  return outer?checkTyp("__SCOPED__",CFDictionaryGetTypeID()):NULL;
 
   // const void *keys[dcount],*values[dcount];
   // bzero(keys,dcount*sizeof(void*));
@@ -137,31 +141,33 @@ static CFTypeRef cfd0(Boolean inner){
 
 }
 
-void cfd(){
+Status cfd(){
 
   // https://developer.apple.com/documentation/corefoundation?language=objc
-  // https://developer.apple.com/documentation/corefoundation/cfdictionary?language=objc
   CFTypeRef r=CFNetworkCopySystemProxySettings();
   assert(r&&CFGetTypeID(r)==CFDictionaryGetTypeID());
-  // CFShow(d);exit(0);
+  // CFShow(r);exit(0);
 
   // globCurDict <- Outer L0 {}
   globCurDict=(CFDictionaryRef)r;
-  // CFShow(globCurDict);
 
   // globCurDict <- Middle L1 {en0={}}
-  globCurDict=cfd0(false); // outer
-  // CFShow(globCurDict);
+  globCurDict=cfd0(true); // outer
+  if(!globCurDict){
+    assert(status==DISCONNECTED);
+    return status;
+  }
+  assert(CFDictionaryGetCount(globCurDict)==1);
 
   // globCurDict <- Inner L2 {}
-  assert(CFDictionaryGetCount(globCurDict)==1);
   globCurDict=checkTyp("en0",CFDictionaryGetTypeID());
-  // CFShow(globCurDict);
 
-  globCurDict=cfd0(true); // inner
+  // globCurDict <- NULL
+  globCurDict=cfd0(false); // inner
   assert(!globCurDict);
 
   CFRelease(r);r=NULL;
+  return status;
 
 }
 

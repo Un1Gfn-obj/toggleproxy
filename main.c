@@ -1,12 +1,15 @@
 // /opt/theos/sdks/iPhoneOS14.4.sdk/**/*.h
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
 
+#include "./status.h"
+
 #define eprintf(...) fprintf(stderr,__VA_ARGS__)
 
-void cfd();
+Status cfd();
 
 static void buildinfo(){
   eprintf( "bld@" /*__DATE__*/ __TIME__ "\n" );
@@ -28,8 +31,12 @@ int main(){
   buildinfo();
   eprintf("\n");
 
-  cfd();
-  eprintf("Proxy is on. Exit normally.\n");
+  switch(cfd()){
+    case DISCONNECTED :eprintf("disconnected\n");break;
+    case CONNECTED_OFF:eprintf("proxy is off\n");break;
+    case CONNECTED_ON :eprintf("proxy is on\n"); break;
+    default           :assert(false);            break;
+  }
 
   eprintf("\n");
   return 0;

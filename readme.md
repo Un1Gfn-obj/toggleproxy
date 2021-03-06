@@ -22,6 +22,18 @@ frame select 2
 source list
 ```
 
-CFShow()
+CFShow() -
+CFCopyDescription() -
+CFCopyTypeIDDescription(CFGetTypeID(r)) -
+CFRelease()
 
-CFCopyDescription()
+[Global Proxy Settings Constants](https://developer.apple.com/documentation/cfnetwork/global_proxy_settings_constants?language=objc) not available in iOS
+
+```
+cfd.m:nn:nn: error: 'kCFNetworkProxiesFTPPassive' is unavailable: not available on iOS
+  const CFTypeRef r=CFDictionaryGetValue(globCurDict,kCFNetworkProxiesFTPPassive);assert(r);
+                                                     ^
+/opt/theos/sdks/iPhoneOS14.4.sdk/System/Library/Frameworks/CFNetwork.framework/Headers/CFProxySupport.h:nnn:nn: note: 'kCFNetworkProxiesFTPPassive' has been explicitly marked unavailable here
+CFN_EXPORT const CFStringRef kCFNetworkProxiesFTPPassive CF_AVAILABLE(10_6, NA);
+                             ^
+```
