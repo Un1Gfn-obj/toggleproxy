@@ -21,3 +21,7 @@ bt all
 frame select 2
 source list
 ```
+
+CFShow()
+
+CFCopyDescription()
