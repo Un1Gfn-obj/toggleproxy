@@ -1,9 +1,19 @@
+// Make sure this file is not compiled as an Objetive-C source
+// Expect failure
+// #import <Foundation/Foundation.h>
+// static void test(){
+//   [NSString new];
+// }
+
 #include <netinet/in.h> // INET6_ADDRSTRLEN
 
 #include "./secret.h"
 #include "./status.h"
 
-#import <Foundation/Foundation.h>
+#include <CoreFoundation/CoreFoundation.h>
+
+#include <CFNetwork/CFNetwork.h>
+#include <SystemConfiguration/SCNetworkConfiguration.h>
 
 #define ACOUNT 2
 #define eprintf(...) fprintf(stderr,__VA_ARGS__)
@@ -16,18 +26,15 @@ static Status status=UNKNOWN;
 
 }*/
 
-static void cf2c_strequ(const CFStringRef theString,const char *const s){
+static int cf2c_strcmp(const char *const s,const CFStringRef theString){
   CFIndex sz=strlen(s);
-  assert(sz==CFStringGetLength(theString));
+  // assert(sz==CFStringGetLength(theString));
   ++sz;
   char buffer[sz];
   bzero(buffer,sz*sizeof(char));
-  // assert(CFStringGetCString(theString,buffer,sz,kCFStringEncodingASCII));
-  // assert(!buffer[sz-1]);
-  // assert(0==strcmp(s,buffer));
-  assert(CFStringGetCString(theString,buffer,sz,kCFStringEncodingASCII)&&
-         !buffer[sz-1]&&
-         0==strcmp(s,buffer));
+  assert(CFStringGetCString(theString,buffer,sz,kCFStringEncodingASCII));
+  assert(!buffer[sz-1]);
+  return strcmp(s,buffer);
 }
 
 /*In case static_assert fails:
@@ -75,7 +82,7 @@ static CFTypeRef check(Boolean type_only,CFStringRef key,const int64_t value,CFT
   }else if(typeid==CFStringGetTypeID()){
     // Shadowing causes segfault, use a different identifier
     // const char *value=(const char*)value;
-    cf2c_strequ((CFStringRef)r,(const char*)value);
+    assert(0==cf2c_strcmp((const char*)value,(CFStringRef)r));
   }else{
     assert(false);
   }
@@ -93,7 +100,7 @@ static void checkEcp0(CFStringRef key){
   for(CFIndex i=0;i<ACOUNT;++i){
     CFTypeRef rr=CFArrayGetValueAtIndex(a,i);
     assert(rr&&CFGetTypeID(rr)==CFStringGetTypeID());
-    cf2c_strequ((CFStringRef)rr,exceptions[i]);
+    assert(0==cf2c_strcmp(exceptions[i],(CFStringRef)rr));
   }
   CFRelease(key);
 }
@@ -141,7 +148,7 @@ static CFTypeRef cfd0(Boolean outer){
 
 }
 
-Status cfd(){
+Status proxy_status(){
 
   // https://developer.apple.com/documentation/corefoundation?language=objc
   CFTypeRef r=CFNetworkCopySystemProxySettings();
@@ -168,6 +175,61 @@ Status cfd(){
 
   CFRelease(r);r=NULL;
   return status;
+
+}
+
+void check_iface(){
+
+  CFArrayRef a=SCNetworkInterfaceCopyAll();
+  assert(CFGetTypeID(a)==CFArrayGetTypeID());
+
+  assert(CFArrayGetCount(a)==3);
+  Boolean found=false;
+  for(CFIndex i=0;i<3;++i){
+
+    SCNetworkInterfaceRef iface=CFArrayGetValueAtIndex(a,i);
+    assert(CFGetTypeID(iface)==SCNetworkInterfaceGetTypeID());
+    // CFShow(iface);
+
+    CFStringRef t=SCNetworkInterfaceGetInterfaceType(iface);
+    if(0==cf2c_strcmp("IEEE80211",t)){
+
+      assert(found==false);
+      found=true;
+
+      assert(0==cf2c_strcmp("en0",SCNetworkInterfaceGetBSDName(iface)));
+      assert(0==cf2c_strcmp(HWADDR,SCNetworkInterfaceGetHardwareAddressString(iface)));
+      assert(!SCNetworkInterfaceGetInterface(iface));
+      assert(0==cf2c_strcmp("Wi-Fi",SCNetworkInterfaceGetLocalizedDisplayName(iface)));
+
+      // SCNetworkInterfaceSetConfiguration(iface, CFDictionaryRef __nullable config)
+
+      // CFShow(SCNetworkInterfaceGetSupportedInterfaceTypes(iface)); // PPP
+      // CFShow(SCNetworkInterfaceGetSupportedProtocolTypes(iface)); // DNS IPv4 IPv6 Proxies
+
+      // CFDictionaryRef current=NULL;
+      // CFDictionaryRef active=NULL;
+      // CFArrayRef available=NULL;
+      // assert(SCNetworkInterfaceCopyMediaOptions(iface,
+      //   &current,
+      //   &active,
+      //   &available,
+      //   false
+      // ));
+      // CFShow(current);
+      // CFShow(active);
+      // CFShow(available);
+
+      break;
+    }
+
+    // CFShow(SCNetworkInterfaceGetConfiguration(iface));
+
+  }
+
+  // assert(SCPreferencesCommitChanges());
+  assert(found);
+  CFRelease(a);
 
 }
 

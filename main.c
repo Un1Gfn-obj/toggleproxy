@@ -7,9 +7,15 @@
 
 #include "./status.h"
 
+// /Library/Preferences: symbolic link to ../private/var/preferences
+// /Library/Preferences/SystemConfiguration/preferences.plist
+// /private/var/preferences/SystemConfiguration/preferences.plist
+#define PLIST "/private/var/preferences/SystemConfiguration/preferences.plist"
 #define eprintf(...) fprintf(stderr,__VA_ARGS__)
 
-Status cfd();
+Status proxy_status();
+void check_iface();
+void dump_plist();
 
 static void buildinfo(){
   eprintf( "bld@" /*__DATE__*/ __TIME__ "\n" );
@@ -24,21 +30,31 @@ static void buildinfo(){
           timeptr->tm_sec);
 }
 
-// int main(int argc,char *argv[],char *envp[]){@autoreleasepool{
+// int main(int argc,char *argv[],char *envp[]){
 int main(){
-
   eprintf("\n");
+
   buildinfo();
   eprintf("\n");
 
-  switch(cfd()){
-    case DISCONNECTED :eprintf("disconnected\n");break;
+  check_iface();
+  const Status s=proxy_status();
+
+  if(s==DISCONNECTED){
+    eprintf("disconnected\n");
+    return 0;
+  }
+
+  switch(s){
     case CONNECTED_OFF:eprintf("proxy is off\n");break;
     case CONNECTED_ON :eprintf("proxy is on\n"); break;
     default           :assert(false);            break;
   }
-
   eprintf("\n");
+
+  dump_plist(PLIST);
+  eprintf("\n");
+
   return 0;
 
 }
