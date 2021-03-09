@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 #include "./status.h"
@@ -15,7 +16,8 @@
 
 Status proxy_status();
 void check_iface();
-void dump_plist();
+// void ns_plist();
+void cf_plist();
 
 static void buildinfo(){
   eprintf( "bld@" /*__DATE__*/ __TIME__ "\n" );
@@ -32,6 +34,14 @@ static void buildinfo(){
 
 // int main(int argc,char *argv[],char *envp[]){
 int main(){
+
+  // Make sure assertion is on
+  bool t=false;
+  assert(++t);
+  if(!t){
+    eprintf("assertion disabled - side effects not applied - abort\n");
+    abort();
+  }
   eprintf("\n");
 
   buildinfo();
@@ -52,7 +62,8 @@ int main(){
   }
   eprintf("\n");
 
-  dump_plist(PLIST);
+  // ns_plist(PLIST);
+  cf_plist(PLIST);
   eprintf("\n");
 
   return 0;

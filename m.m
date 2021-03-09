@@ -16,7 +16,7 @@
 
 // Re-implement with CFPropertyList in c.c
 // https://developer.apple.com/documentation/corefoundation/cfpropertylist?language=objc
-void dump_plist(const char *const path){@autoreleasepool{
+void ns_plist(const char *const path){@autoreleasepool{
 
   // Check if path exists
   // Check if path is readable

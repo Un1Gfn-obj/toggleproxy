@@ -29,4 +29,4 @@ purge:
 # 	ssh2 \~/toggleproxy
 
 ALL_OBJCFLAGS:=-Wall -Wextra -g $(ALL_OBJCFLAGS) -UNDEBUG -UNS_BLOCK_ASSERTIONS # -Wno-error -Wdeprecated-declarations
-ALL_CFLAGS:=-Wall -Wextra -g $(ALL_CFLAGS) -UNDEBUG
+ALL_CFLAGS:=-Wall -Wextra -g $(ALL_CFLAGS) -UNDEBUG # -Wno-error -Wunused-parameter

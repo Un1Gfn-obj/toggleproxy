@@ -241,3 +241,66 @@ void check_iface(){
   printf("%d\n",s.HTTPEnabled);
   printf("%d\n",proxySettings.HTTPEnabled);
 }}*/
+
+void cf_plist(const char *const path){
+
+  assert(0==access(path,F_OK));
+  assert(0==access(path,R_OK));
+
+  // char bytes[length]={}
+  // ftell()+fread()
+  // mmap()
+  // CFDataRef data=CFDataCreate(kCFAllocatorDefault,bytes,length);
+  // assert(data&&CFGetTypeID(data)==CFDataGetTypeID());
+  // CFPropertyListRef *plist=CFPropertyListCreateWithData(
+  //   kCFAllocatorDefault,
+  //   data,
+  //   kCFPropertyListMutableContainersAndLeaves,
+  //   &format,
+  //   &error);
+
+  CFStringRef filePath=CFStringCreateWithCString(kCFAllocatorDefault,path,kCFStringEncodingASCII);
+  assert(filePath&&CFGetTypeID(filePath)==CFStringGetTypeID());
+
+  CFURLRef fileURL=CFURLCreateWithFileSystemPath(kCFAllocatorDefault,filePath,kCFURLPOSIXPathStyle,false);
+  assert(fileURL&&CFGetTypeID(fileURL)==CFURLGetTypeID());
+  CFRelease(filePath);filePath=NULL;
+
+  CFReadStreamRef stream=CFReadStreamCreateWithFile(kCFAllocatorDefault,fileURL); // The URL must use the file scheme
+  assert(stream&&CFGetTypeID(stream)==CFReadStreamGetTypeID());
+  CFRelease(fileURL);fileURL=NULL;
+
+  assert(CFReadStreamOpen(stream));
+  CFPropertyListFormat format=-1;
+  CFErrorRef error=NULL;
+  CFPropertyListRef plist=CFPropertyListCreateWithStream(
+    kCFAllocatorDefault,
+    stream,
+    0,
+    kCFPropertyListMutableContainersAndLeaves,
+    &format,
+    &error);
+  assert(!error&&
+         plist&&
+         format==kCFPropertyListBinaryFormat_v1_0);
+  assert(CFPropertyListIsValid(plist,kCFPropertyListBinaryFormat_v1_0));
+
+  CFReadStreamClose(stream);CFRelease(stream);stream=NULL;
+
+  // Dump
+  assert(CFGetTypeID(plist)==CFDictionaryGetTypeID());
+  CFDictionaryRef dict=plist;
+  CFShow(dict);
+
+  // Modify
+  // ...
+
+  // Write
+  // assert(0==access(path,W_OK));
+  // assert(CFPropertyListIsValid(,kCFPropertyListBinaryFormat_v1_0));
+  // CFIndex CFPropertyListWrite(CFPropertyListRef propertyList, CFWriteStreamRef stream, CFPropertyListFormat format, CFOptionFlags options, CFErrorRef *error);
+
+  // Dealloc
+  CFRelease(plist);
+
+}
