@@ -1,5 +1,5 @@
 // Make sure this file is not compiled as an Objetive-C source
-// Expect failure
+// Expect compile failure
 // #import <Foundation/Foundation.h>
 // static void test(){
 //   [NSString new];
@@ -10,9 +10,8 @@
 #include "./secret.h"
 #include "./status.h"
 
-#include <CoreFoundation/CoreFoundation.h>
-
 #include <CFNetwork/CFNetwork.h>
+#include <CoreFoundation/CoreFoundation.h>
 #include <SystemConfiguration/SCNetworkConfiguration.h>
 
 #define ACOUNT 2
@@ -188,7 +187,7 @@ void check_iface(){
   for(CFIndex i=0;i<3;++i){
 
     SCNetworkInterfaceRef iface=CFArrayGetValueAtIndex(a,i);
-    assert(CFGetTypeID(iface)==SCNetworkInterfaceGetTypeID());
+    assert(iface&&CFGetTypeID(iface)==SCNetworkInterfaceGetTypeID());
     // CFShow(iface);
 
     CFStringRef t=SCNetworkInterfaceGetInterfaceType(iface);
@@ -201,6 +200,9 @@ void check_iface(){
       assert(0==cf2c_strcmp(HWADDR,SCNetworkInterfaceGetHardwareAddressString(iface)));
       assert(!SCNetworkInterfaceGetInterface(iface));
       assert(0==cf2c_strcmp("Wi-Fi",SCNetworkInterfaceGetLocalizedDisplayName(iface)));
+
+      assert(!SCNetworkInterfaceGetConfiguration(iface));
+      // CFShow(SCNetworkInterfaceGetExtendedConfiguration(iface,CFSTR("Proxies")));
 
       // SCNetworkInterfaceSetConfiguration(iface, CFDictionaryRef __nullable config)
 
@@ -223,7 +225,6 @@ void check_iface(){
       break;
     }
 
-    // CFShow(SCNetworkInterfaceGetConfiguration(iface));
 
   }
 
@@ -289,11 +290,44 @@ void cf_plist(const char *const path){
 
   // Dump
   assert(CFGetTypeID(plist)==CFDictionaryGetTypeID());
-  CFDictionaryRef dict=plist;
-  CFShow(dict);
+  // error: initializing 'CFMutableDictionaryRef' (aka 'struct __CFDictionary *') with an expression of type 'CFPropertyListRef' (aka 'const void *') discards qualifiers
+  // CFMutableDictionaryRef root=plist;
+  CFMutableDictionaryRef root=(CFMutableDictionaryRef)plist;
+  CFShow(root);
 
-  // Modify
-  // ...
+  /*
+
+    CFMutableDictionaryRef instead of CFDictionaryRef
+
+    .Sets.*.Network.Global.IPv4.ServiceOrder is ordered array, take the third ([2]) one
+    .Sets.*.Network.Service is unordered dictionary, unusable
+  
+    Do not remove the following pseudocode even in production
+
+    $uuidAP <- strip prefix <- .CurrentSet
+    Assert "Model" "J96AP"
+    Assert "__VERSION__" 20191120
+
+    $pSet <- .Sets.$uuidAP
+    $pNetwork <- $pSet.Network
+    $uuidNS <- $pNetwork.Global.IPv4.ServiceOrder[2]
+    Assert $pNetwork.Interface.en0.AirPort exists
+    Assert $pSet.UserDefinedName secret.h/SSID
+
+    $pNetworkService <- .NetworkServices.$uuidNS
+
+    $pInterface <- $pNetworkService.Interface
+    Assert $pInterface CFDictionaryGetCount 4
+    Assert $pInterface.*
+
+    $pProxies <- $pNetworkService.Proxies
+    checkEcp $pProxies.ExceptionsList
+    check1nt FTPPassive +1
+    Modify $pProxies
+
+  */
+
+  
 
   // Write
   // assert(0==access(path,W_OK));
@@ -302,5 +336,7 @@ void cf_plist(const char *const path){
 
   // Dealloc
   CFRelease(plist);
+
+  // Boolean SCNetworkInterfaceForceConfigurationRefresh(SCNetworkInterfaceRef interface);
 
 }

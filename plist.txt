@@ -1,0 +1,27 @@
+CFMutableDictionaryRef instead of CFDictionaryRef
+
+.Sets.*.Network.Global.IPv4.ServiceOrder is ordered array, take the third ([2]) one
+.Sets.*.Network.Service is unordered dictionary, unusable
+
+Do not remove the following pseudocode even in production
+
+$uuidAP <- strip prefix <- .CurrentSet
+Assert "Model" "J96AP"
+Assert "__VERSION__" 20191120
+
+$pSet <- .Sets.$uuidAP
+$pNetwork <- $pSet.Network
+$uuidNS <- $pNetwork.Global.IPv4.ServiceOrder[2]
+Assert $pNetwork.Interface.en0.AirPort exists
+Assert $pSet.UserDefinedName secret.h/SSID
+
+$pNetworkService <- .NetworkServices.$uuidNS
+
+$pInterface <- $pNetworkService.Interface
+Assert $pInterface CFDictionaryGetCount 4
+Assert $pInterface.*
+
+$pProxies <- $pNetworkService.Proxies
+checkEcp $pProxies.ExceptionsList
+check1nt FTPPassive +1
+Modify $pProxies

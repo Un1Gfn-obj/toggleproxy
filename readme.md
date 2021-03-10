@@ -75,3 +75,14 @@ https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/UserD
 https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFPreferences/CFPreferences.html \
 https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFPropertyLists/CFPropertyLists.html \
 https://developer.apple.com/library/archive/documentation/Networking/Conceptual/SystemConfigFrameworks/SC_Intro/SC_Intro.html \
+
+/opt/theos/sdks/iPhoneOS14.4.sdk/System/Library/Frameworks/SystemConfiguration.framework/Headers/SCSchemaDefinitions.h
+
+```plain
+... kSCPropNetProxiesHTTPEnable ... "HTTPEnable" ... CFNumber (0 or 1)
+```
+
+[NSDictionary:valueForKey](https://developer.apple.com/documentation/foundation/nsdictionary/1410210-valueforkey?language=objc) -
+[key path](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/KeyValueCoding/BasicPrinciples.html) -
+[SO](https://stackoverflow.com/a/4317864/8243991)
+

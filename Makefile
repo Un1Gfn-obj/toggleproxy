@@ -10,7 +10,7 @@ TOOL_NAME = toggleproxy
 
 toggleproxy_FILES += main.c
 toggleproxy_FILES += c.c
-toggleproxy_FILES += m.m
+# toggleproxy_FILES += plist.m
 
 toggleproxy_CFLAGS = -fobjc-arc
 toggleproxy_CODESIGN_FLAGS = -Sentitlements.plist

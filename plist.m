@@ -14,8 +14,6 @@
 // #import <CoreFoundation/CoreFoundation.h>
 #import <Foundation/Foundation.h>
 
-// Re-implement with CFPropertyList in c.c
-// https://developer.apple.com/documentation/corefoundation/cfpropertylist?language=objc
 void ns_plist(const char *const path){@autoreleasepool{
 
   // Check if path exists

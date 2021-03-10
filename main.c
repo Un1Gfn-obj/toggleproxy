@@ -32,34 +32,34 @@ static void buildinfo(){
           timeptr->tm_sec);
 }
 
-// int main(int argc,char *argv[],char *envp[]){
-int main(){
-
-  // Make sure assertion is on
-  bool t=false;
-  assert(++t);
-  if(!t){
+static void assertion_not_disabled(){
+  int t=8;
+  assert((t=t*t));
+  if(t!=64){
     eprintf("assertion disabled - side effects not applied - abort\n");
     abort();
   }
+}
+
+// int main(int argc,char *argv[],char *envp[]){
+int main(){
+
   eprintf("\n");
 
+  assertion_not_disabled();
   buildinfo();
   eprintf("\n");
 
   check_iface();
-  const Status s=proxy_status();
 
+  const Status s=proxy_status();
   if(s==DISCONNECTED){
     eprintf("disconnected\n");
-    return 0;
-  }
-
+    return 0;}
   switch(s){
     case CONNECTED_OFF:eprintf("proxy is off\n");break;
     case CONNECTED_ON :eprintf("proxy is on\n"); break;
-    default           :assert(false);            break;
-  }
+    default           :assert(false);            break;}
   eprintf("\n");
 
   // ns_plist(PLIST);
