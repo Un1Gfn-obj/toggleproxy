@@ -17,8 +17,6 @@
 #define ACOUNT 2
 #define eprintf(...) fprintf(stderr,__VA_ARGS__)
 
-static CFDictionaryRef globCurDict=NULL;
-
 static Status status=UNKNOWN;
 
 /*static void c2cf_strequ(){
@@ -62,12 +60,14 @@ void cfd(){
 static_assert(sizeof(int64_t)==sizeof(char*),"");
 
 // https://www.ismp.org/resources/misidentification-alphanumeric-symbols
-#define check1nt(K,V) check(false,CFSTR(K),          V ,CFNumberGetTypeID())
-#define check8tr(K,V) check(false,CFSTR(K),(int64_t)(V),CFStringGetTypeID())
-#define checkTyp(K,T) check(true ,CFSTR(K),          0 ,                T  ) // Check value type only
-static CFTypeRef check(Boolean type_only,CFStringRef key,const int64_t value,CFTypeID typeid){
-  assert(CFDictionaryContainsKey(globCurDict,key));
-  const CFTypeRef r=CFDictionaryGetValue(globCurDict,key); // CFShow(r);
+#define check1nt(D,K,V) check(D,false,CFSTR(K),          V ,CFNumberGetTypeID())
+#define check8tr(D,K,V) check(D,false,CFSTR(K),(int64_t)(V),CFStringGetTypeID())
+#define checkTyp(D,K,T) check(D,true ,CFSTR(K),          0 ,                T  ) // Check value type only
+static CFTypeRef check(CFDictionaryRef dict,Boolean type_only,CFStringRef key,const int64_t value,CFTypeID typeid){
+  assert(dict&&
+         CFGetTypeID(dict)==CFDictionaryGetTypeID()&&
+         CFDictionaryContainsKey(dict,key));
+  const CFTypeRef r=CFDictionaryGetValue(dict,key);
   assert(r&&CFGetTypeID(r)==typeid);
   if(type_only){
     assert(value==0);
@@ -89,10 +89,13 @@ static CFTypeRef check(Boolean type_only,CFStringRef key,const int64_t value,CFT
   return r;
 }
 
-#define checkEcp(K) checkEcp0(CFSTR(K))
-static void checkEcp0(CFStringRef key){
-  const CFTypeRef r=CFDictionaryGetValue(globCurDict,key);assert(r);
-  assert(CFGetTypeID(r)==CFArrayGetTypeID());
+#define checkEcp(D,K) checkEcp0(D,CFSTR(K))
+static void checkEcp0(CFDictionaryRef dict,CFStringRef key){
+  assert(dict&&
+         CFGetTypeID(dict)==CFDictionaryGetTypeID()&&
+         CFDictionaryContainsKey(dict,key));
+  const CFTypeRef r=CFDictionaryGetValue(dict,key);
+  assert(r&&CFGetTypeID(r)==CFArrayGetTypeID());
   CFArrayRef a=r;
   assert(CFArrayGetCount(a)==ACOUNT);
   const char * const exceptions[ACOUNT]={"*.local","169.254/16"};
@@ -104,9 +107,10 @@ static void checkEcp0(CFStringRef key){
   CFRelease(key);
 }
 
-static CFTypeRef cfd0(Boolean outer){
+static CFTypeRef cfd0(CFDictionaryRef dict,Boolean outer){
 
-  CFIndex dcount=CFDictionaryGetCount(globCurDict);
+  assert(dict&&CFGetTypeID(dict)==CFDictionaryGetTypeID());
+  CFIndex dcount=CFDictionaryGetCount(dict);
 
   if(outer)switch(dcount){
     case  0:status=DISCONNECTED ;return NULL;break;
@@ -120,16 +124,16 @@ static CFTypeRef cfd0(Boolean outer){
   }
 
   /*                  */ // eprintf("A\n");
-  /*                  */ checkEcp("ExceptionsList");
-  /*                  */ check1nt("FTPPassive",+1);
-  (status==CONNECTED_ON)?check1nt("HTTPEnable",+1):0; // HTTPEnable CFNumber +1
-  (status==CONNECTED_ON)?check1nt("HTTPSEnable",+1):0;
-  (status==CONNECTED_ON)?check1nt("HTTPPort",+8080):0;
-  (status==CONNECTED_ON)?check1nt("HTTPSPort",+8080):0;
-  (status==CONNECTED_ON)?check8tr("HTTPProxy",PROXY_IP):0;
-  (status==CONNECTED_ON)?check8tr("HTTPSProxy",PROXY_IP):0;
+  /*                  */ checkEcp(dict,"ExceptionsList");
+  /*                  */ check1nt(dict,"FTPPassive",+1);
+  (status==CONNECTED_ON)?check1nt(dict,"HTTPEnable",+1):0; // HTTPEnable CFNumber +1
+  (status==CONNECTED_ON)?check1nt(dict,"HTTPSEnable",+1):0;
+  (status==CONNECTED_ON)?check1nt(dict,"HTTPPort",+8080):0;
+  (status==CONNECTED_ON)?check1nt(dict,"HTTPSPort",+8080):0;
+  (status==CONNECTED_ON)?check8tr(dict,"HTTPProxy",PROXY_IP):0;
+  (status==CONNECTED_ON)?check8tr(dict,"HTTPSProxy",PROXY_IP):0;
   /*                  */ // eprintf("B\n");
-  return outer?checkTyp("__SCOPED__",CFDictionaryGetTypeID()):NULL;
+  return outer?checkTyp(dict,"__SCOPED__",CFDictionaryGetTypeID()):NULL;
 
   // const void *keys[dcount],*values[dcount];
   // bzero(keys,dcount*sizeof(void*));
@@ -150,27 +154,22 @@ static CFTypeRef cfd0(Boolean outer){
 Status proxy_status(){
 
   // https://developer.apple.com/documentation/corefoundation?language=objc
+
+  // L0 {}
   CFTypeRef r=CFNetworkCopySystemProxySettings();
   assert(r&&CFGetTypeID(r)==CFDictionaryGetTypeID());
   // CFShow(r);exit(0);
 
-  // globCurDict <- Outer L0 {}
-  globCurDict=(CFDictionaryRef)r;
-
-  // globCurDict <- Middle L1 {en0={}}
-  globCurDict=cfd0(true); // outer
-  if(!globCurDict){
+  // L1 {en0={}}
+  const CFDictionaryRef middle=cfd0((CFDictionaryRef)r,true); // outer
+  if(!middle){
     assert(status==DISCONNECTED);
     return status;
   }
-  assert(CFDictionaryGetCount(globCurDict)==1);
+  assert(CFDictionaryGetCount(middle)==1);
 
-  // globCurDict <- Inner L2 {}
-  globCurDict=checkTyp("en0",CFDictionaryGetTypeID());
-
-  // globCurDict <- NULL
-  globCurDict=cfd0(false); // inner
-  assert(!globCurDict);
+  // L2 {}
+  assert(!cfd0(checkTyp(middle,"en0",CFDictionaryGetTypeID()),false));
 
   CFRelease(r);r=NULL;
   return status;
@@ -295,38 +294,7 @@ void cf_plist(const char *const path){
   CFMutableDictionaryRef root=(CFMutableDictionaryRef)plist;
   CFShow(root);
 
-  /*
-
-    CFMutableDictionaryRef instead of CFDictionaryRef
-
-    .Sets.*.Network.Global.IPv4.ServiceOrder is ordered array, take the third ([2]) one
-    .Sets.*.Network.Service is unordered dictionary, unusable
-  
-    Do not remove the following pseudocode even in production
-
-    $uuidAP <- strip prefix <- .CurrentSet
-    Assert "Model" "J96AP"
-    Assert "__VERSION__" 20191120
-
-    $pSet <- .Sets.$uuidAP
-    $pNetwork <- $pSet.Network
-    $uuidNS <- $pNetwork.Global.IPv4.ServiceOrder[2]
-    Assert $pNetwork.Interface.en0.AirPort exists
-    Assert $pSet.UserDefinedName secret.h/SSID
-
-    $pNetworkService <- .NetworkServices.$uuidNS
-
-    $pInterface <- $pNetworkService.Interface
-    Assert $pInterface CFDictionaryGetCount 4
-    Assert $pInterface.*
-
-    $pProxies <- $pNetworkService.Proxies
-    checkEcp $pProxies.ExceptionsList
-    check1nt FTPPassive +1
-    Modify $pProxies
-
-  */
-
+  // Pseudocode in plist.txt
   
 
   // Write
