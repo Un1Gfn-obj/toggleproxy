@@ -10,8 +10,8 @@
 ---
 
 ```objc
-CFCopyDescription() -
-CFCopyTypeIDDescription(CFGetTypeID(r)) -
+CFCopyDescription()
+CFCopyTypeIDDescription(CFGetTypeID(r))
 CFRelease()
 ```
 
@@ -68,17 +68,25 @@ plistutil -i preferences.plist -o - -f xml | grep -e "7.21.8.31" -e "8964"
 https://discussions.apple.com/thread/252531803 \
 https://developer.apple.com/forums/thread/65416
 
-**https://stackoverflow.com/a/10671542/** \
-https://stackoverflow.com/a/3464757/ \
-https://stackoverflow.com/q/36127254/ \
-https://stackoverflow.com/q/8798699/ \
-<s>https://stackoverflow.com/q/36333784/</s>
+stackoverflow -
+[**10671542**](https://stackoverflow.com/a/10671542/) -
+[3464757](https://stackoverflow.com/a/3464757/) -
+[36127254](https://stackoverflow.com/q/36127254/) -
+[8798699](https://stackoverflow.com/q/8798699/) -
+[<s>36333784</s>](https://stackoverflow.com/q/36333784/)
 
-https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/PropertyLists/Introduction/Introduction.html \
-https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/UserDefaults/AboutPreferenceDomains/AboutPreferenceDomains.html \
-https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFPreferences/CFPreferences.html \
-https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFPropertyLists/CFPropertyLists.html \
-https://developer.apple.com/library/archive/documentation/Networking/Conceptual/SystemConfigFrameworks/SC_Intro/SC_Intro.html \
+[ProxySetter.m](https://github.com/chetan51/sidestep/blob/master/ProxySetter.m)
+
+[Documentation Archive](https://developer.apple.com/library/archive/navigation/) (read in firefox reader view) \
+[How would I enable macOS System Proxy?](https://developer.apple.com/forums/thread/74672) -
+[**System Configuration Framework**](https://developer.apple.com/library/archive/documentation/Networking/Conceptual/SystemConfigFrameworks/) \
+[PropertyLists](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/PropertyLists/) -
+[UserDefaults](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/UserDefaults/) -
+[CFPreferences](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFPreferences/) -
+[CFPropertyLists](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFPropertyLists/) -
+[AppSandbox](https://developer.apple.com/library/archive/documentation/Security/Conceptual/AppSandboxDesignGuide/)
+([brief](https://cocoacasts.com/what-is-application-sandboxing/))
+([App Sandbox](https://developer.apple.com/documentation/security/app_sandbox?language=objc))
 
 /opt/theos/sdks/iPhoneOS14.4.sdk/System/Library/Frameworks/SystemConfiguration.framework/Headers/SCSchemaDefinitions.h
 
@@ -90,5 +98,11 @@ https://developer.apple.com/library/archive/documentation/Networking/Conceptual/
 [key path](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/KeyValueCoding/BasicPrinciples.html) -
 [SO](https://stackoverflow.com/a/4317864/8243991)
 
+[cephei `/usr/bin/defaults`](https://hbang.github.io/libcephei/)
 
-[Rounded Square Black Paper Plane Icon](https://www.iconfinder.com/icons/3592673/align_center_flip2_graphic_mirro_tool_vertical_icon)
+[SCNetworkSetCopyServices](https://developer.apple.com/documentation/systemconfiguration/1517085-scnetworksetcopyservices?language=objc) -
+[SCPreferencesCommitChanges](https://developer.apple.com/documentation/systemconfiguration/1517333-scpreferencescommitchanges?language=occ) -
+[SCPreferencesApplyChanges](https://developer.apple.com/documentation/systemconfiguration/1517125-scpreferencesapplychanges?language=occ) -
+[SCPreferencesCreateWithAuthorization](https://developer.apple.com/documentation/systemconfiguration/1516686-scpreferencescreatewithauthoriza?language=objc)
+
+[Paper Plane Icon](https://www.iconfinder.com/icons/3592673/align_center_flip2_graphic_mirro_tool_vertical_icon)

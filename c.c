@@ -501,11 +501,11 @@ static void cf_plist(const Boolean already_on){
   // Dealloc
   CFRelease(plist);
 
-  CFArrayRef a=NULL;
-
-  assert(SCNetworkInterfaceForceConfigurationRefresh(geten0(&a)));
-  assert(a);
-  CFRelease(a);
+  CFArrayRef arr=NULL;
+  const SCNetworkInterfaceRef en0=geten0(&arr);
+  assert(arr&&en0&&0==cf2c_strcmp("en0",SCNetworkInterfaceGetBSDName(en0)));
+  assert(SCNetworkInterfaceForceConfigurationRefresh(en0));
+  CFRelease(arr);
 
 }
 
