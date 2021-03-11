@@ -72,10 +72,12 @@ static int cf2c_strcmp(const char *const s,const CFStringRef theString){
 static_assert(sizeof(int64_t)==sizeof(char*),"");
 
 // https://www.ismp.org/resources/misidentification-alphanumeric-symbols
-#define check1nt(D,K,V) check(D,false,CFSTR(K),          V ,CFNumberGetTypeID())
-#define check8tr(D,K,V) check(D,false,CFSTR(K),(int64_t)(V),CFStringGetTypeID())
-#define checkTyp(D,K,T) check(D,true ,CFSTR(K),          0 ,                T  ) // Check value type only
-static CFTypeRef check(CFDictionaryRef dict,Boolean type_only,CFStringRef key,const int64_t value,CFTypeID typeid){
+#define check1nt(D,K,V) check(D,false,K,          V ,CFNumberGetTypeID())
+#define check8tr(D,K,V) check(D,false,K,(int64_t)(V),CFStringGetTypeID())
+#define checkTyp(D,K,T) check(D,true ,K,          0 ,                T  ) // Check value type only
+static CFTypeRef check(const CFDictionaryRef dict,const Boolean type_only,const char *const cStr,const int64_t value,const CFTypeID typeid){
+  assert(cStr&&cStr[0]);
+  const CFStringRef key=CFStringCreateWithCString(kCFAllocatorDefault,cStr,kCFStringEncodingASCII);
   assert(dict&&
          CFGetTypeID(dict)==CFDictionaryGetTypeID()&&
          CFDictionaryContainsKey(dict,key));
