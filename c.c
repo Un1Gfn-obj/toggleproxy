@@ -18,6 +18,7 @@
 #define ACOUNT 2
 #define UUIDSTRLEN 36
 #define UUIDBYTES 16
+#define PLIST "/private/var/preferences/SystemConfiguration/preferences.plist"
 #define eprintf(...) fprintf(stderr,__VA_ARGS__)
 
 static Status status=UNKNOWN;
@@ -104,8 +105,8 @@ static CFTypeRef check(const CFDictionaryRef dict,const Boolean type_only,const 
   return r;
 }
 
-#define checkEcp(D,K) checkEcp0(D,CFSTR(K))
-static void checkEcp0(CFDictionaryRef dict,CFStringRef key){
+static void checkEcp(const CFDictionaryRef dict){
+  const CFStringRef key=CFSTR("ExceptionsList");
   assert(dict&&
          CFGetTypeID(dict)==CFDictionaryGetTypeID()&&
          CFDictionaryContainsKey(dict,key));
@@ -122,32 +123,46 @@ static void checkEcp0(CFDictionaryRef dict,CFStringRef key){
   CFRelease(key);
 }
 
+static void check_on8_off2(const CFDictionaryRef dict,const int n){
+  switch(n){
+  case 8:
+    check1nt(dict,"HTTPEnable",+1);
+    check1nt(dict,"HTTPPort",PROXY_PORT);
+    check8tr(dict,"HTTPProxy",PROXY_IP);
+    check1nt(dict,"HTTPSEnable",+1);
+    check1nt(dict,"HTTPSPort",PROXY_PORT);
+    check8tr(dict,"HTTPSProxy",PROXY_IP);
+     // __attribute__((fallthrough));
+  case 2:
+    checkEcp(dict);
+    check1nt(dict,"FTPPassive",+1);
+    break;
+  default:
+    assert(false);
+    break;
+  }
+}
+
 static CFTypeRef cfd0(CFDictionaryRef dict,Boolean outer){
 
   assert(dict&&CFGetTypeID(dict)==CFDictionaryGetTypeID());
   CFIndex dcount=CFDictionaryGetCount(dict);
 
+  #define C2 check_on8_off2(dict,2)
+  #define C8 check_on8_off2(dict,8)
   if(outer)switch(dcount){
     case  0:status=DISCONNECTED ;return NULL;break;
-    case  3:status=CONNECTED_OFF            ;break;
-    case  9:status=CONNECTED_ON             ;break;
+    case  3:status=CONNECTED_OFF;         C2;break;
+    case  9:status=CONNECTED_ON ;         C8;break;
     default:assert(false);                  ;break;
   }else switch(dcount){
-    case  2:assert(status==CONNECTED_OFF)   ;break;
-    case  8:assert(status==CONNECTED_ON)    ;break;
+    case  2:assert(status==CONNECTED_OFF);C2;break;
+    case  8:assert(status==CONNECTED_ON) ;C8;break;
     default:assert(false);                  ;break;
   }
+  #undef C8
+  #undef C2
 
-  /*                  */ // eprintf("A\n");
-  /*                  */ checkEcp(dict,"ExceptionsList");
-  /*                  */ check1nt(dict,"FTPPassive",+1);
-  (status==CONNECTED_ON)?check1nt(dict,"HTTPEnable",+1):0; // HTTPEnable CFNumber +1
-  (status==CONNECTED_ON)?check1nt(dict,"HTTPSEnable",+1):0;
-  (status==CONNECTED_ON)?check1nt(dict,"HTTPPort",+8080):0;
-  (status==CONNECTED_ON)?check1nt(dict,"HTTPSPort",+8080):0;
-  (status==CONNECTED_ON)?check8tr(dict,"HTTPProxy",PROXY_IP):0;
-  (status==CONNECTED_ON)?check8tr(dict,"HTTPSProxy",PROXY_IP):0;
-  /*                  */ // eprintf("B\n");
   return outer?checkTyp(dict,"__SCOPED__",CFDictionaryGetTypeID()):NULL;
 
   // const void *keys[dcount],*values[dcount];
@@ -303,10 +318,10 @@ static CFDictionaryRef one_man_army(CFDictionaryRef r,...){
   return r;
 }
 
-void cf_plist(const char *const path){
+static void cf_plist(const Boolean already_on){
 
-  assert(0==access(path,F_OK));
-  assert(0==access(path,R_OK));
+  assert(0==access(PLIST,F_OK));
+  assert(0==access(PLIST,R_OK));
 
   // char bytes[length]={}
   // ftell()+fread()
@@ -320,7 +335,8 @@ void cf_plist(const char *const path){
   //   &format,
   //   &error);
 
-  CFStringRef filePath=CFStringCreateWithCString(kCFAllocatorDefault,path,kCFStringEncodingASCII);
+  // CFStringRef filePath=CFStringCreateWithCString(kCFAllocatorDefault,PLIST,kCFStringEncodingASCII);
+  CFStringRef filePath=CFSTR(PLIST);
   assert(filePath&&CFGetTypeID(filePath)==CFStringGetTypeID());
 
   CFURLRef fileURL=CFURLCreateWithFileSystemPath(kCFAllocatorDefault,filePath,kCFURLPOSIXPathStyle,false);
@@ -334,7 +350,7 @@ void cf_plist(const char *const path){
   assert(CFReadStreamOpen(stream));
   CFPropertyListFormat format=-1;
   CFErrorRef error=NULL;
-  CFPropertyListRef plist=CFPropertyListCreateWithStream(
+  const CFPropertyListRef plist=CFPropertyListCreateWithStream(
     kCFAllocatorDefault,
     stream,
     0,
@@ -350,12 +366,11 @@ void cf_plist(const char *const path){
 
   // Dump
   assert(CFGetTypeID(plist)==CFDictionaryGetTypeID());
-  // error: initializing 'CFMutableDictionaryRef' (aka 'struct __CFDictionary *') with an expression of type 'CFPropertyListRef' (aka 'const void *') discards qualifiers
-  // CFMutableDictionaryRef root=plist;
-  CFMutableDictionaryRef root=(CFMutableDictionaryRef)plist;
+  const CFDictionaryRef root=plist;
   // CFShow(root);
 
-  // Modify (pseudocode plist.txt)
+  // Begin modification (pseudocode plist.txt)
+
   check8tr(root,"Model","J96AP");
   check1nt(root,"__VERSION__",20191120);
 
@@ -404,11 +419,50 @@ void cf_plist(const char *const path){
   check8tr(dInterface,"Type"           ,"Ethernet");
   check8tr(dInterface,"UserDefinedName","Wi-Fi"   );
 
-  // const CFDictionaryRef dProxies=checkTyp(dNS,"Proxies",CFDictionaryGetTypeID());
+  const CFDictionaryRef dProxies=checkTyp(dNS,"Proxies",CFDictionaryGetTypeID());
+
+  if(already_on){ // on -> off
+    assert(CFDictionaryGetCount(dProxies)==8);
+    check_on8_off2(dProxies,8);
+    for(const char **sp=(const char*[]){
+      "HTTPEnable",
+      "HTTPPort",
+      "HTTPProxy",
+      "HTTPSEnable",
+      "HTTPSPort",
+      "HTTPSProxy",
+      NULL}; *sp; ++sp
+    ){
+      const CFStringRef key=CFStringCreateWithCString(kCFAllocatorDefault,*sp,kCFStringEncodingASCII);
+      assert(CFDictionaryContainsKey(dProxies,key));
+      assert(1==CFDictionaryGetCountOfKey(dProxies,key));
+      CFDictionaryRemoveValue((CFMutableDictionaryRef)dProxies,key);
+      assert(!CFDictionaryContainsKey(dProxies,key));
+      assert(0==CFDictionaryGetCountOfKey(dProxies,key));
+      CFRelease(key);
+    }
+    assert(CFDictionaryGetCount(dProxies)==2);
+    check_on8_off2(dProxies,2);
+  }else{ // off -> on
+    assert(false);
+    // assert(CFDictionaryGetCount(dProxies)==2);
+    // check_on8_off2(dProxies,2);
+    // Add the following
+    // HTTPEnable  = 1
+    // HTTPPort    = PROXY_PORT
+    // HTTPProxy   = PROXY_IP
+    // HTTPSEnable = 1
+    // HTTPSPort   = PROXY_PORT
+    // HTTPSProxy  = PROXY_IP
+    // assert(CFDictionaryGetCount(dProxies)==8);
+    // check_on8_off2(dProxies,8);
+  }
+
+  // End modification (pseudocode plist.txt)
 
   // Write
-  // assert(0==access(path,W_OK));
-  // assert(CFPropertyListIsValid(,kCFPropertyListBinaryFormat_v1_0));
+  assert(0==access(PLIST,W_OK));
+  assert(CFPropertyListIsValid(plist,kCFPropertyListBinaryFormat_v1_0));
   // CFIndex CFPropertyListWrite(CFPropertyListRef propertyList, CFWriteStreamRef stream, CFPropertyListFormat format, CFOptionFlags options, CFErrorRef *error);
 
   // Dealloc
@@ -417,3 +471,11 @@ void cf_plist(const char *const path){
   // Boolean SCNetworkInterfaceForceConfigurationRefresh(SCNetworkInterfaceRef interface);
 
 }
+
+void on2off(){
+  cf_plist(true);
+}
+
+/*void off2on(){
+  cf_plist(false);
+}*/
