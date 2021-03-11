@@ -30,8 +30,12 @@ CFN_EXPORT const CFStringRef kCFNetworkProxiesFTPPassive CF_AVAILABLE(10_6, NA);
 ---
 
 ```plain
-$ source ~/ios/ios.bashrc
-$ make purge all && ssh2 rm -fv \~/toggleproxy && scp2 .theos/obj/debug/toggleproxy && ssh2 \~/toggleproxy
+[darren@... toggleproxy]$ source ~/ios/ios.bashrc
+[darren@... toggleproxy]$ make purge all && ssh2 rm -fv \~/toggleproxy && scp2 .theos/obj/debug/toggleproxy && echo && sha1sum .theos/obj/debug/toggleproxy && echo
+```
+
+```plain
+iPad-...-...:~ mobile$ echo && sha1sum ./toggleproxy && ./toggleproxy
 ```
 
 https://lldb.llvm.org/use/map.html

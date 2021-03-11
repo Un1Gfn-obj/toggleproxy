@@ -44,7 +44,7 @@ static void assertion_not_disabled(){
 // int main(int argc,char *argv[],char *envp[]){
 int main(){
 
-  eprintf("\n");
+  // eprintf("\n");
 
   assertion_not_disabled();
   buildinfo();

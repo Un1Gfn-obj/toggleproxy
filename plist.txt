@@ -18,13 +18,13 @@ $uuidNS <- $pNetwork.Global.IPv4.ServiceOrder[2]
 
 -------
 
-$dNS <- .NetworkServices.$uuidNS
+$dNS <- root.NetworkServices.$uuidNS
 
-$pInterface <- $dNS.Interface
-Assert $pInterface CFDictionaryGetCount 4
-Assert $pInterface.*
+$dInterface <- $dNS.Interface
+Assert $dInterface CFDictionaryGetCount 4
+Assert $dInterface.*
 
-$pProxies <- $dNS.Proxies
-checkEcp $pProxies.ExceptionsList
+$dProxies <- $dNS.Proxies
+checkEcp $dProxies.ExceptionsList
 check1nt FTPPassive +1
-Modify $pProxies
+Modify $dProxies

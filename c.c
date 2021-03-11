@@ -393,6 +393,19 @@ void cf_plist(const char *const path){
   const char *const uuidNS=CFStringGetCStringPtr(uuidNSboxed,kCFStringEncodingASCII);
   check_uuid(uuidNS);
 
+  const CFDictionaryRef dNS=checkTyp(checkTyp(root,
+    "NetworkServices",CFDictionaryGetTypeID()),
+    uuidNS,CFDictionaryGetTypeID());
+
+  const CFDictionaryRef dInterface=checkTyp(dNS,"Interface",CFDictionaryGetTypeID());
+  assert(CFDictionaryGetCount(dInterface)==4);
+  check8tr(dInterface,"DeviceName"     ,"en0"     );
+  check8tr(dInterface,"Hardware"       ,"AirPort" );
+  check8tr(dInterface,"Type"           ,"Ethernet");
+  check8tr(dInterface,"UserDefinedName","Wi-Fi"   );
+
+  // const CFDictionaryRef dProxies=checkTyp(dNS,"Proxies",CFDictionaryGetTypeID());
+
   // Write
   // assert(0==access(path,W_OK));
   // assert(CFPropertyListIsValid(,kCFPropertyListBinaryFormat_v1_0));
