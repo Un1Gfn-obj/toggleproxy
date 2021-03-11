@@ -261,7 +261,7 @@ static void check_uuid(const char *const cStr){
   assert(s&&CFGetTypeID(s)==CFStringGetTypeID());
   const CFUUIDRef u=CFUUIDCreateFromString(kCFAllocatorDefault,s);
   CFRelease(s);
-  CFShow(u);
+  // CFShow(u);
 
   // UUID parsable
   if(!( u&&CFGetTypeID(u)==CFUUIDGetTypeID() )){
@@ -350,9 +350,10 @@ void cf_plist(const char *const path){
   assert(strlen(uuidAP)==UUIDSTRLEN);
   check_uuid(uuidAP);
 
-  
-
-
+  const CFDictionaryRef pSet=checkTyp(checkTyp(root,
+    "Sets",CFDictionaryGetTypeID()),
+    uuidAP,CFDictionaryGetTypeID());
+  check8tr(pSet,"UserDefinedName",SSID);
 
   // Write
   // assert(0==access(path,W_OK));

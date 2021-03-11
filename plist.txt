@@ -1,15 +1,15 @@
 CFMutableDictionaryRef instead of CFDictionaryRef
 
-.Sets.*.Network.Global.IPv4.ServiceOrder is ordered array, take the third ([2]) one
-.Sets.*.Network.Service is unordered dictionary, unusable
+root.Sets.*.Network.Global.IPv4.ServiceOrder is ordered array, take the third ([2]) one
+root.Sets.*.Network.Service is unordered dictionary, unusable
 
 -------
 
 Assert "Model" "J96AP"
 Assert "__VERSION__" 20191120
 
-$uuidAP <- strip prefix <- .CurrentSet
-$pSet <- .Sets.$uuidAP
+$uuidAP <- strip prefix <- root.CurrentSet
+$pSet <- root.Sets.$uuidAP
 Assert $pSet.UserDefinedName secret.h/SSID
 
 $pNetwork <- $pSet.Network
