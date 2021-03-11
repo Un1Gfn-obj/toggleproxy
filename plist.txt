@@ -8,23 +8,23 @@ root.Sets.*.Network.Service is unordered dictionary, unusable
 Assert "Model" "J96AP"
 Assert "__VERSION__" 20191120
 
-$uuidAP <- strip prefix <- root.CurrentSet
-$pSet <- root.Sets.$uuidAP
-Assert $pSet.UserDefinedName secret.h/SSID
+$uuidSet <- strip prefix <- root.CurrentSet
+$dSet <- root.Sets.$uuidSet
+Assert $dSet.UserDefinedName secret.h/SSID
 
-$pNetwork <- $pSet.Network
+$pNetwork <- $dSet.Network
 Assert $pNetwork.Interface.en0.AirPort.JoinMode exists
 $uuidNS <- $pNetwork.Global.IPv4.ServiceOrder[2]
 
 -------
 
-$pNetworkService <- .NetworkServices.$uuidNS
+$dNS <- .NetworkServices.$uuidNS
 
-$pInterface <- $pNetworkService.Interface
+$pInterface <- $dNS.Interface
 Assert $pInterface CFDictionaryGetCount 4
 Assert $pInterface.*
 
-$pProxies <- $pNetworkService.Proxies
+$pProxies <- $dNS.Proxies
 checkEcp $pProxies.ExceptionsList
 check1nt FTPPassive +1
 Modify $pProxies

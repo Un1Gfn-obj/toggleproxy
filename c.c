@@ -259,11 +259,14 @@ static void check_uuid(const char *const cStr){
   // check_uuid("AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"); // P N
   // check_uuid("XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"); // P Z
   assert(cStr);
+  for(int i=0;i<UUIDSTRLEN;++i)
+    assert(cStr[i]);
+  assert(!cStr[UUIDSTRLEN]);
   const CFStringRef s=CFStringCreateWithCString(kCFAllocatorDefault,cStr,kCFStringEncodingASCII);
   assert(s&&CFGetTypeID(s)==CFStringGetTypeID());
   const CFUUIDRef u=CFUUIDCreateFromString(kCFAllocatorDefault,s);
   CFRelease(s);
-  // CFShow(u);
+  CFShow(u);
 
   // UUID parsable
   if(!( u&&CFGetTypeID(u)==CFUUIDGetTypeID() )){
@@ -358,18 +361,16 @@ void cf_plist(const char *const path){
 
   const char *const prefix="/Sets/";
   const size_t prefixL=strlen(prefix);
-  const char *uuidAP=CFStringGetCStringPtr(checkTyp(root,"CurrentSet",CFStringGetTypeID()),kCFStringEncodingASCII);
-  assert(uuidAP&&0==strncmp(prefix,uuidAP,prefixL));
-  uuidAP+=prefixL;
-  assert(strlen(uuidAP)==UUIDSTRLEN);
-  check_uuid(uuidAP);
+  const char *uuidSet=CFStringGetCStringPtr(checkTyp(root,"CurrentSet",CFStringGetTypeID()),kCFStringEncodingASCII);
+  assert(uuidSet&&0==strncmp(prefix,uuidSet,prefixL));
+  check_uuid((uuidSet+=prefixL));
 
-  const CFDictionaryRef pSet=checkTyp(checkTyp(root,
+  const CFDictionaryRef dSet=checkTyp(checkTyp(root,
     "Sets",CFDictionaryGetTypeID()),
-    uuidAP,CFDictionaryGetTypeID());
-  check8tr(pSet,"UserDefinedName",SSID);
+    uuidSet,CFDictionaryGetTypeID());
+  check8tr(dSet,"UserDefinedName",SSID);
 
-  const CFDictionaryRef pNetwork=checkTyp(pSet,"Network",CFDictionaryGetTypeID());
+  const CFDictionaryRef pNetwork=checkTyp(dSet,"Network",CFDictionaryGetTypeID());
   checkTyp(one_man_army(pNetwork,"Interface","en0","AirPort",NULL),"JoinMode",CFStringGetTypeID());
   // CFDictionaryRef pLoop=pNetwork;
   // for( const char **sp=(const char*[]){"Interface","en0","AirPort",NULL}; *sp; ++sp ){
@@ -378,7 +379,7 @@ void cf_plist(const char *const path){
   // }
   // checkTyp(pLoop,"JoinMode",CFStringGetTypeID());
 
-  checkTyp(one_man_army(pNetwork,"Global","IPv4",NULL),"ServiceOrder",CFArrayGetTypeID());
+  const CFArrayRef srvOrd=checkTyp(one_man_army(pNetwork,"Global","IPv4",NULL),"ServiceOrder",CFArrayGetTypeID());
   // pLoop=pNetwork;
   // for( const char **sp=(const char*[]){"Global","IPv4",NULL}; *sp; ++sp ){
   //   pLoop=checkTyp(pLoop,*sp,CFDictionaryGetTypeID());
@@ -386,7 +387,11 @@ void cf_plist(const char *const path){
   // }
   // pLoop=checkTyp(pLoop,"ServiceOrder",CFArrayGetTypeID());
 
-  // uuidNS=check
+  assert(CFArrayGetCount(srvOrd)==5);
+  const CFStringRef uuidNSboxed=CFArrayGetValueAtIndex(srvOrd,2);
+  assert(uuidNSboxed&&CFGetTypeID(uuidNSboxed)==CFStringGetTypeID());
+  const char *const uuidNS=CFStringGetCStringPtr(uuidNSboxed,kCFStringEncodingASCII);
+  check_uuid(uuidNS);
 
   // Write
   // assert(0==access(path,W_OK));
