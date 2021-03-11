@@ -15,6 +15,8 @@
 #include <SystemConfiguration/SCNetworkConfiguration.h>
 
 #define ACOUNT 2
+#define UUIDSTRLEN 36
+#define UUIDBYTES 16
 #define eprintf(...) fprintf(stderr,__VA_ARGS__)
 
 static Status status=UNKNOWN;
@@ -24,39 +26,49 @@ static Status status=UNKNOWN;
 }*/
 
 static int cf2c_strcmp(const char *const s,const CFStringRef theString){
-  CFIndex sz=strlen(s);
-  // assert(sz==CFStringGetLength(theString));
-  ++sz;
-  char buffer[sz];
-  bzero(buffer,sz*sizeof(char));
-  assert(CFStringGetCString(theString,buffer,sz,kCFStringEncodingASCII));
-  assert(!buffer[sz-1]);
-  return strcmp(s,buffer);
+  assert(theString&&CFGetTypeID(theString)==CFStringGetTypeID());
+  const char *cString=CFStringGetCStringPtr(theString,kCFStringEncodingASCII);
+  // https://developer.apple.com/documentation/corefoundation/1542133-cfstringgetcstringptr?language=objc#discussion
+  if(cString){
+    assert(cString[0]);
+    return strcmp(s,cString);
+  }else{
+    CFIndex sz=strlen(s);
+    // Inequality is valid when skipping items
+    // assert(sz==CFStringGetLength(theString));
+    ++sz;
+    char buffer[sz];
+    bzero(buffer,sz*sizeof(char));
+    assert(CFStringGetCString(theString,buffer,sz,kCFStringEncodingASCII)&&
+           !buffer[sz-1]);
+    return strcmp(s,buffer);
+  }
+  assert(false);
 }
 
 /*In case static_assert fails:
-(1) On 32-bit iOS with 32-bit pointers and kCFNumberSInt32Type dictionary values, generic int32_t parameter may work
-(2) If 32/64-bit things are mixed, simply cast everything to 64-bit
-(3) If a generic parameter is not feasible, do the following
-static void check(...const void *data...){
-  ...
-  }else if(typeid==CFNumberGetTypeID()){
+  (1) On 32-bit iOS with 32-bit pointers and kCFNumberSInt32Type dictionary values, generic int32_t parameter may work
+  (2) If 32/64-bit things are mixed, simply cast everything to 64-bit
+  (3) If a generic parameter is not feasible, do the following
+  static void check(...const void *data...){
     ...
-    assert(...v==*((int64_t*)data))
-    ...
-  }else if(typeid==CFStringGetTypeID()){
-    ...
-    assert(...0==strcmp((const char*)data,buffer))
+    }else if(typeid==CFNumberGetTypeID()){
+      ...
+      assert(...v==*((int64_t*)data))
+      ...
+    }else if(typeid==CFStringGetTypeID()){
+      ...
+      assert(...0==strcmp((const char*)data,buffer))
+      ...
+    }
     ...
   }
-  ...
-}
-void cfd(){
-  ...
-  check("HTTPEnable",&(int64_t){+1},CFNumberGetTypeID());
-  check("HTTPSProxy",PROXY_IP,CFStringGetTypeID());
-  ...
-}*/
+  void cfd(){
+    ...
+    check("HTTPEnable",&(int64_t){+1},CFNumberGetTypeID());
+    check("HTTPSProxy",PROXY_IP,CFStringGetTypeID());
+    ...
+  }*/
 static_assert(sizeof(int64_t)==sizeof(char*),"");
 
 // https://www.ismp.org/resources/misidentification-alphanumeric-symbols
@@ -233,14 +245,44 @@ void check_iface(){
 
 }
 
-/*static void nsd(){@autoreleasepool{
-  NSDictionary *nsd=(__bridge NSDictionary*)CFNetworkCopySystemProxySettings();
-  NSDictionary *nsd=CFBridgingRelease(CFNetworkCopySystemProxySettings());
-  // https://developer.apple.com/documentation/networkextension/neproxysettings?language=occ
-  NEProxySettings *s=[NEProxySettings new];
-  printf("%d\n",s.HTTPEnabled);
-  printf("%d\n",proxySettings.HTTPEnabled);
-}}*/
+// check_uuid(""); // F
+// check_uuid("A"); // P Z
+// check_uuid("0A"); // P N
+// check_uuid("A0"); // P N
+// check_uuid("AA"); // P N
+// check_uuid("AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAA"); // P N
+// check_uuid("AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"); // P N
+// check_uuid("XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"); // P Z
+static void check_uuid(const char *const cStr){
+  assert(cStr);
+  const CFStringRef s=CFStringCreateWithCString(kCFAllocatorDefault,cStr,kCFStringEncodingASCII);
+  assert(s&&CFGetTypeID(s)==CFStringGetTypeID());
+  const CFUUIDRef u=CFUUIDCreateFromString(kCFAllocatorDefault,s);
+  CFRelease(s);
+  CFShow(u);
+
+  // UUID parsable
+  if(!( u&&CFGetTypeID(u)==CFUUIDGetTypeID() )){
+    assert(false);
+    // eprintf("F \n");
+    // return;
+  }
+  // eprintf("P ");
+
+  // UUID non-zero
+  static_assert(sizeof(CFUUIDBytes)==UUIDBYTES,"");
+  CFUUIDBytes bytes=CFUUIDGetUUIDBytes(u);
+  CFRelease(u);
+  const unsigned char *p=(unsigned char*)&bytes;
+
+  if( !p[0] && 0==memcmp(p,p+1,(UUIDBYTES-1)) ){
+    assert(false);
+    // eprintf("Z \n");
+    // return;
+  }
+  // eprintf("N \n");
+
+}
 
 void cf_plist(const char *const path){
 
@@ -292,10 +334,23 @@ void cf_plist(const char *const path){
   // error: initializing 'CFMutableDictionaryRef' (aka 'struct __CFDictionary *') with an expression of type 'CFPropertyListRef' (aka 'const void *') discards qualifiers
   // CFMutableDictionaryRef root=plist;
   CFMutableDictionaryRef root=(CFMutableDictionaryRef)plist;
-  CFShow(root);
+  // CFShow(root);
 
-  // Pseudocode in plist.txt
+  // Modify (pseudocode plist.txt)
+  check8tr(root,"Model","J96AP");
+  check1nt(root,"__VERSION__",20191120);
+
+  const char *const prefix="/Sets/";
+  const size_t prefixL=strlen(prefix);
+  const char *uuidAP=CFStringGetCStringPtr(checkTyp(root,"CurrentSet",CFStringGetTypeID()),kCFStringEncodingASCII);
+  assert(uuidAP&&0==strncmp(prefix,uuidAP,prefixL));
+  uuidAP+=prefixL;
+  assert(strlen(uuidAP)==UUIDSTRLEN);
+  check_uuid(uuidAP);
+
   
+
+
 
   // Write
   // assert(0==access(path,W_OK));

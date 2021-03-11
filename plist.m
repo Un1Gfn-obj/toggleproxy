@@ -14,6 +14,15 @@
 // #import <CoreFoundation/CoreFoundation.h>
 #import <Foundation/Foundation.h>
 
+/*static void nsd(){@autoreleasepool{
+  NSDictionary *nsd=(__bridge NSDictionary*)CFNetworkCopySystemProxySettings();
+  NSDictionary *nsd=CFBridgingRelease(CFNetworkCopySystemProxySettings());
+  // https://developer.apple.com/documentation/networkextension/neproxysettings?language=occ
+  NEProxySettings *s=[NEProxySettings new];
+  printf("%d\n",s.HTTPEnabled);
+  printf("%d\n",proxySettings.HTTPEnabled);
+}}*/
+
 void ns_plist(const char *const path){@autoreleasepool{
 
   // Check if path exists
