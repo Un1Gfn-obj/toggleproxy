@@ -13,7 +13,7 @@ $pSet <- root.Sets.$uuidAP
 Assert $pSet.UserDefinedName secret.h/SSID
 
 $pNetwork <- $pSet.Network
-Assert $pNetwork.Interface.en0.AirPort exists
+Assert $pNetwork.Interface.en0.AirPort.JoinMode exists
 $uuidNS <- $pNetwork.Global.IPv4.ServiceOrder[2]
 
 -------
