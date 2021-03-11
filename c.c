@@ -206,16 +206,18 @@ Status proxy_status(){
 
 }
 
-void check_iface(){
+// geten0(NULL) - Return NULL
+// geten0(&ARR) - Return SCNetworkInterfaceRef of en0, set ARR to a
+static SCNetworkInterfaceRef geten0(CFArrayRef *rp){
 
   CFArrayRef a=SCNetworkInterfaceCopyAll();
   assert(CFGetTypeID(a)==CFArrayGetTypeID());
-
   assert(CFArrayGetCount(a)==3);
   Boolean found=false;
+  SCNetworkInterfaceRef iface=NULL;
   for(CFIndex i=0;i<3;++i){
 
-    SCNetworkInterfaceRef iface=CFArrayGetValueAtIndex(a,i);
+    iface=CFArrayGetValueAtIndex(a,i);
     assert(iface&&CFGetTypeID(iface)==SCNetworkInterfaceGetTypeID());
     // CFShow(iface);
 
@@ -229,8 +231,8 @@ void check_iface(){
       assert(0==cf2c_strcmp(HWADDR,SCNetworkInterfaceGetHardwareAddressString(iface)));
       assert(!SCNetworkInterfaceGetInterface(iface));
       assert(0==cf2c_strcmp("Wi-Fi",SCNetworkInterfaceGetLocalizedDisplayName(iface)));
-
       assert(!SCNetworkInterfaceGetConfiguration(iface));
+
       // CFShow(SCNetworkInterfaceGetExtendedConfiguration(iface,CFSTR("Proxies")));
 
       // SCNetworkInterfaceSetConfiguration(iface, CFDictionaryRef __nullable config)
@@ -254,13 +256,21 @@ void check_iface(){
       break;
     }
 
-
   }
 
   // assert(SCPreferencesCommitChanges());
-  assert(found);
+  assert(found&&iface);
+  if(rp){
+    *rp=a;
+    return iface;
+  }
   CFRelease(a);
+  return NULL;
 
+}
+
+void check_iface(){
+  geten0(NULL);
 }
 
 static void check_uuid(const char *const cStr){
@@ -281,7 +291,7 @@ static void check_uuid(const char *const cStr){
   assert(s&&CFGetTypeID(s)==CFStringGetTypeID());
   const CFUUIDRef u=CFUUIDCreateFromString(kCFAllocatorDefault,s);
   CFRelease(s);
-  CFShow(u);
+  // CFShow(u);
 
   // UUID parsable
   if(!( u&&CFGetTypeID(u)==CFUUIDGetTypeID() )){
@@ -318,41 +328,31 @@ static CFDictionaryRef one_man_army(CFDictionaryRef r,...){
   return r;
 }
 
+static CFURLRef path2url(const char *const path){
+  CFStringRef s=CFStringCreateWithCString(kCFAllocatorDefault,path,kCFStringEncodingASCII);
+  assert(s&&CFGetTypeID(s)==CFStringGetTypeID());
+  CFURLRef url=CFURLCreateWithFileSystemPath(kCFAllocatorDefault,s,kCFURLPOSIXPathStyle,false);
+  assert(url&&CFGetTypeID(url)==CFURLGetTypeID());
+  CFRelease(s);s=NULL;
+  return url;
+}
+
 static void cf_plist(const Boolean already_on){
 
   assert(0==access(PLIST,F_OK));
   assert(0==access(PLIST,R_OK));
 
-  // char bytes[length]={}
-  // ftell()+fread()
-  // mmap()
-  // CFDataRef data=CFDataCreate(kCFAllocatorDefault,bytes,length);
-  // assert(data&&CFGetTypeID(data)==CFDataGetTypeID());
-  // CFPropertyListRef *plist=CFPropertyListCreateWithData(
-  //   kCFAllocatorDefault,
-  //   data,
-  //   kCFPropertyListMutableContainersAndLeaves,
-  //   &format,
-  //   &error);
-
-  // CFStringRef filePath=CFStringCreateWithCString(kCFAllocatorDefault,PLIST,kCFStringEncodingASCII);
-  CFStringRef filePath=CFSTR(PLIST);
-  assert(filePath&&CFGetTypeID(filePath)==CFStringGetTypeID());
-
-  CFURLRef fileURL=CFURLCreateWithFileSystemPath(kCFAllocatorDefault,filePath,kCFURLPOSIXPathStyle,false);
-  assert(fileURL&&CFGetTypeID(fileURL)==CFURLGetTypeID());
-  CFRelease(filePath);filePath=NULL;
-
-  CFReadStreamRef stream=CFReadStreamCreateWithFile(kCFAllocatorDefault,fileURL); // The URL must use the file scheme
-  assert(stream&&CFGetTypeID(stream)==CFReadStreamGetTypeID());
+  CFURLRef fileURL=path2url(PLIST);
+  CFReadStreamRef rStream=CFReadStreamCreateWithFile(kCFAllocatorDefault,fileURL); // The URL must use the file scheme
+  assert(rStream&&CFGetTypeID(rStream)==CFReadStreamGetTypeID());
   CFRelease(fileURL);fileURL=NULL;
 
-  assert(CFReadStreamOpen(stream));
+  assert(CFReadStreamOpen(rStream));
   CFPropertyListFormat format=-1;
   CFErrorRef error=NULL;
   const CFPropertyListRef plist=CFPropertyListCreateWithStream(
     kCFAllocatorDefault,
-    stream,
+    rStream,
     0,
     kCFPropertyListMutableContainersAndLeaves,
     &format,
@@ -362,7 +362,7 @@ static void cf_plist(const Boolean already_on){
          format==kCFPropertyListBinaryFormat_v1_0);
   assert(CFPropertyListIsValid(plist,kCFPropertyListBinaryFormat_v1_0));
 
-  CFReadStreamClose(stream);CFRelease(stream);stream=NULL;
+  CFReadStreamClose(rStream);CFRelease(rStream);rStream=NULL;
 
   // Dump
   assert(CFGetTypeID(plist)==CFDictionaryGetTypeID());
@@ -459,16 +459,53 @@ static void cf_plist(const Boolean already_on){
   }
 
   // End modification (pseudocode plist.txt)
+  assert(CFPropertyListIsValid(plist,kCFPropertyListBinaryFormat_v1_0));
 
   // Write
-  assert(0==access(PLIST,W_OK));
-  assert(CFPropertyListIsValid(plist,kCFPropertyListBinaryFormat_v1_0));
+  // assert(0==access(PLIST,W_OK));
   // CFIndex CFPropertyListWrite(CFPropertyListRef propertyList, CFWriteStreamRef stream, CFPropertyListFormat format, CFOptionFlags options, CFErrorRef *error);
+
+  // fileURL=path2url("/private/var/mobile/tmp.plist");
+  fileURL=path2url(PLIST);
+  CFWriteStreamRef wStream=CFWriteStreamCreateWithFile(kCFAllocatorDefault,fileURL);
+  assert(wStream&&CFGetTypeID(wStream)==CFWriteStreamGetTypeID());
+  assert(0==getuid());
+  assert(CFWriteStreamOpen(wStream));
+  assert(1<=CFPropertyListWrite(
+    plist,
+    wStream,
+    kCFPropertyListBinaryFormat_v1_0,
+    0,
+    &error));
+  assert(!error);
+  CFWriteStreamClose(wStream);CFRelease(wStream);wStream=NULL;
+  CFRelease(fileURL);fileURL=NULL;
+
+  // fileURL=path2url("/private/var/mobile/tmp_cfdata.plist");
+  // wStream=CFWriteStreamCreateWithFile(kCFAllocatorDefault,fileURL);
+  // assert(wStream&&CFGetTypeID(wStream)==CFWriteStreamGetTypeID());
+  // assert(CFWriteStreamOpen(wStream));
+  // CFDataRef cfdata=CFPropertyListCreateData(
+  //   kCFAllocatorDefault,
+  //   plist,
+  //   kCFPropertyListBinaryFormat_v1_0,
+  //   0,
+  //   &error);
+  // assert(!error);
+  // assert(cfdata&&CFGetTypeID(cfdata)==CFDataGetTypeID());
+  // // Deprecated
+  // // Boolean CFURLWriteDataAndPropertiesToResource(CFURLRef url, CFDataRef dataToWrite, CFDictionaryRef propertiesToWrite, SInt32 *errorCode);
+  // CFWriteStreamClose(wStream);
+  // CFRelease(fileURL);fileURL=NULL;
 
   // Dealloc
   CFRelease(plist);
 
-  // Boolean SCNetworkInterfaceForceConfigurationRefresh(SCNetworkInterfaceRef interface);
+  CFArrayRef a=NULL;
+
+  assert(SCNetworkInterfaceForceConfigurationRefresh(geten0(&a)));
+  assert(a);
+  CFRelease(a);
 
 }
 

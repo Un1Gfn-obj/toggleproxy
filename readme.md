@@ -90,3 +90,5 @@ https://developer.apple.com/library/archive/documentation/Networking/Conceptual/
 [key path](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/KeyValueCoding/BasicPrinciples.html) -
 [SO](https://stackoverflow.com/a/4317864/8243991)
 
+
+[Rounded Square Black Paper Plane Icon](https://www.iconfinder.com/icons/3592673/align_center_flip2_graphic_mirro_tool_vertical_icon)
