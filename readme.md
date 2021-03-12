@@ -31,7 +31,7 @@ CFN_EXPORT const CFStringRef kCFNetworkProxiesFTPPassive CF_AVAILABLE(10_6, NA);
 
 ```plain
 [darren@... toggleproxy]$ source ~/ios/ios.bashrc
-[darren@... toggleproxy]$ make purge all && ssh2 rm -fv \~/toggleproxy && scp2 .theos/obj/debug/toggleproxy && echo && sha1sum .theos/obj/debug/toggleproxy && echo
+[darren@... toggleproxy]$ make purge all transfer
 ```
 
 ```plain
@@ -46,8 +46,8 @@ frame select 2
 source list
 ```
 
-SpringBoard - Settings - WLAN - i - HTTP PROXY - Configure Proxy - Manual - Server - 7.21.8.31\
-SpringBoard - Settings - WLAN - i - HTTP PROXY - Configure Proxy - Manual - Port - 8964
+<!-- SpringBoard - Settings - WLAN - i - HTTP PROXY - Configure Proxy - Manual - Server - 7.21.8.31\
+SpringBoard - Settings - WLAN - i - HTTP PROXY - Configure Proxy - Manual - Port - 8964 -->
 
 ```bash
 source ~/ios/ios.bashrc
@@ -106,3 +106,7 @@ stackoverflow -
 [SCPreferencesCreateWithAuthorization](https://developer.apple.com/documentation/systemconfiguration/1516686-scpreferencescreatewithauthoriza?language=objc)
 
 [Paper Plane Icon](https://www.iconfinder.com/icons/3592673/align_center_flip2_graphic_mirro_tool_vertical_icon)
+
+[TheCreateRule](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFMemoryMgmt/Concepts/Ownership.html#//apple_ref/doc/writerid/cfCreateRule)
+
+https://whatismyipaddress.com

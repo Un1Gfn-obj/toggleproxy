@@ -1,24 +1,23 @@
-// Make sure this file is not compiled as an Objetive-C source
-// Expect compile failure
-// #import <Foundation/Foundation.h>
-// static void test(){
-//   [NSString new];
-// }
+// https://gcc.gnu.org/onlinedocs/cpp/Standard-Predefined-Macros.html
+#if defined __OBJC__ || defined __cplusplus
+#error
+#endif
+
+#include "./c.h" // Self
+#include "./secret.h"
 
 #include <netinet/in.h> // INET6_ADDRSTRLEN
-#include <stdarg.h> // one_man_army()
-
-#include "./secret.h"
-#include "./status.h"
-
+#include <stdarg.h> // stdarg(3) one_man_army()
 #include <CFNetwork/CFNetwork.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <SystemConfiguration/SCNetworkConfiguration.h>
 
-#define ACOUNT 2
+// // /Library/Preferences: symbolic link to ../private/var/preferences
+#define PLIST "/private/var/preferences/SystemConfiguration/preferences.plist"
 #define UUIDSTRLEN 36
 #define UUIDBYTES 16
-#define PLIST "/private/var/preferences/SystemConfiguration/preferences.plist"
+#define ACOUNT 2
+
 #define eprintf(...) fprintf(stderr,__VA_ARGS__)
 
 static Status status=UNKNOWN;
@@ -36,8 +35,6 @@ static int cf2c_strcmp(const char *const s,const CFStringRef theString){
     return strcmp(s,cString);
   }else{
     CFIndex sz=strlen(s);
-    // Inequality is valid when skipping items
-    // assert(sz==CFStringGetLength(theString));
     ++sz;
     char buffer[sz];
     bzero(buffer,sz*sizeof(char));
@@ -71,15 +68,51 @@ static int cf2c_strcmp(const char *const s,const CFStringRef theString){
     check("HTTPSProxy",PROXY_IP,CFStringGetTypeID());
     ...
   }*/
-static_assert(sizeof(int64_t)==sizeof(char*),"");
+static_assert(sizeof(int64_t)==sizeof(void*),"");
+static_assert(sizeof(int64_t)==sizeof(CFTypeRef),"");
+
+// https://www.ismp.org/resources/misidentification-alphanumeric-symbols
+#define add1nt(D,K,V) add((CFMutableDictionaryRef)(D),K,          V ,CFNumberGetTypeID())
+#define add8tr(D,K,V) add((CFMutableDictionaryRef)(D),K,(int64_t)(V),CFStringGetTypeID())
+static void add(const CFMutableDictionaryRef dict,const char *const keyRaw,const int64_t valueRaw,const CFTypeID typeid){
+
+  assert(keyRaw&&keyRaw[0]);
+  const CFStringRef key=CFStringCreateWithCString(kCFAllocatorDefault,keyRaw,kCFStringEncodingASCII);
+  assert(key&&CFGetTypeID(key)==CFStringGetTypeID());
+  assert(dict&&CFGetTypeID(dict)==CFDictionaryGetTypeID()&&!CFDictionaryContainsKey(dict,key));
+
+  CFTypeRef value=NULL;
+  if(false){
+    ;
+  }else if(typeid==CFNumberGetTypeID()){
+    value=CFNumberCreate(kCFAllocatorDefault,kCFNumberSInt64Type,&valueRaw);
+    int64_t tmp=-1;
+    assert(value&&
+           CFGetTypeID(value)==CFNumberGetTypeID()&&
+           CFNumberGetType(value)==kCFNumberSInt64Type&&
+           CFNumberGetByteSize(value)==64/8&&
+           CFNumberGetValue(value,kCFNumberSInt64Type,&tmp)&&
+           tmp==valueRaw);
+  }else if(typeid==CFStringGetTypeID()){
+    value=CFStringCreateWithCString(kCFAllocatorDefault,(const char*)valueRaw,kCFStringEncodingASCII);
+    assert(value&&CFGetTypeID(value)==CFStringGetTypeID());
+  }else{
+    assert(false);
+  }
+  CFDictionaryAddValue(dict,key,value);
+
+  CFRelease(key);
+  CFRelease(value);
+
+}
 
 // https://www.ismp.org/resources/misidentification-alphanumeric-symbols
 #define check1nt(D,K,V) check(D,false,K,          V ,CFNumberGetTypeID())
 #define check8tr(D,K,V) check(D,false,K,(int64_t)(V),CFStringGetTypeID())
 #define checkTyp(D,K,T) check(D,true ,K,          0 ,                T  ) // Check value type only
-static CFTypeRef check(const CFDictionaryRef dict,const Boolean type_only,const char *const cStr,const int64_t value,const CFTypeID typeid){
-  assert(cStr&&cStr[0]);
-  const CFStringRef key=CFStringCreateWithCString(kCFAllocatorDefault,cStr,kCFStringEncodingASCII);
+static CFTypeRef check(const CFDictionaryRef dict,const Boolean type_only,const char *const keyRaw,const int64_t value,const CFTypeID typeid){
+  assert(keyRaw&&keyRaw[0]);
+  const CFStringRef key=CFStringCreateWithCString(kCFAllocatorDefault,keyRaw,kCFStringEncodingASCII);
   assert(dict&&
          CFGetTypeID(dict)==CFDictionaryGetTypeID()&&
          CFDictionaryContainsKey(dict,key));
@@ -132,7 +165,7 @@ static void check_on8_off2(const CFDictionaryRef dict,const int n){
     check1nt(dict,"HTTPSEnable",+1);
     check1nt(dict,"HTTPSPort",PROXY_PORT);
     check8tr(dict,"HTTPSProxy",PROXY_IP);
-     // __attribute__((fallthrough));
+     __attribute__((fallthrough));
   case 2:
     checkEcp(dict);
     check1nt(dict,"FTPPassive",+1);
@@ -144,10 +177,8 @@ static void check_on8_off2(const CFDictionaryRef dict,const int n){
 }
 
 static CFTypeRef cfd0(CFDictionaryRef dict,Boolean outer){
-
   assert(dict&&CFGetTypeID(dict)==CFDictionaryGetTypeID());
   CFIndex dcount=CFDictionaryGetCount(dict);
-
   #define C2 check_on8_off2(dict,2)
   #define C8 check_on8_off2(dict,8)
   if(outer)switch(dcount){
@@ -162,28 +193,10 @@ static CFTypeRef cfd0(CFDictionaryRef dict,Boolean outer){
   }
   #undef C8
   #undef C2
-
   return outer?checkTyp(dict,"__SCOPED__",CFDictionaryGetTypeID()):NULL;
-
-  // const void *keys[dcount],*values[dcount];
-  // bzero(keys,dcount*sizeof(void*));
-  // bzero(values,dcount*sizeof(void*));
-  // CFDictionaryGetKeysAndValues(d,keys,values);
-  // // CFDictionaryApplyFunction
-  // // for( const int *p=(int[]){0,1,2,3,4,5,6,7,8,-777}; *p>=0; ++p ){
-  // // for( const int *p=(int[]){2,3,6,8,-777}; *p>=0; ++p ){
-  // for( const int *p=(int[]){3,8,-777}; *p>=0; ++p ){
-  //   assert(keys[*p]&&values[*p]);
-  //   fprintf(stderr,"[%d] ",*p);CFShow(keys[*p]);
-  //   CFShow(values[*p]);
-  //   fprintf(stderr,"\n");
-  // }
-
 }
 
 Status proxy_status(){
-
-  // https://developer.apple.com/documentation/corefoundation?language=objc
 
   // L0 {}
   CFTypeRef r=CFNetworkCopySystemProxySettings();
@@ -207,39 +220,31 @@ Status proxy_status(){
 }
 
 // geten0(NULL) - Return NULL
-// geten0(&ARR) - Return SCNetworkInterfaceRef of en0, set ARR to a
+// geten0(&ARR) - Return SCNetworkInterfaceRef of en0 - Set ARR to a
 static SCNetworkInterfaceRef geten0(CFArrayRef *rp){
-
   CFArrayRef a=SCNetworkInterfaceCopyAll();
   assert(CFGetTypeID(a)==CFArrayGetTypeID());
   assert(CFArrayGetCount(a)==3);
   Boolean found=false;
   SCNetworkInterfaceRef iface=NULL;
   for(CFIndex i=0;i<3;++i){
-
     iface=CFArrayGetValueAtIndex(a,i);
     assert(iface&&CFGetTypeID(iface)==SCNetworkInterfaceGetTypeID());
     // CFShow(iface);
-
     CFStringRef t=SCNetworkInterfaceGetInterfaceType(iface);
     if(0==cf2c_strcmp("IEEE80211",t)){
-
       assert(found==false);
       found=true;
-
       assert(0==cf2c_strcmp("en0",SCNetworkInterfaceGetBSDName(iface)));
       assert(0==cf2c_strcmp(HWADDR,SCNetworkInterfaceGetHardwareAddressString(iface)));
       assert(!SCNetworkInterfaceGetInterface(iface));
       assert(0==cf2c_strcmp("Wi-Fi",SCNetworkInterfaceGetLocalizedDisplayName(iface)));
       assert(!SCNetworkInterfaceGetConfiguration(iface));
-
+      break;
       // CFShow(SCNetworkInterfaceGetExtendedConfiguration(iface,CFSTR("Proxies")));
-
       // SCNetworkInterfaceSetConfiguration(iface, CFDictionaryRef __nullable config)
-
       // CFShow(SCNetworkInterfaceGetSupportedInterfaceTypes(iface)); // PPP
       // CFShow(SCNetworkInterfaceGetSupportedProtocolTypes(iface)); // DNS IPv4 IPv6 Proxies
-
       // CFDictionaryRef current=NULL;
       // CFDictionaryRef active=NULL;
       // CFArrayRef available=NULL;
@@ -252,12 +257,9 @@ static SCNetworkInterfaceRef geten0(CFArrayRef *rp){
       // CFShow(current);
       // CFShow(active);
       // CFShow(available);
-
-      break;
+      // break;
     }
-
   }
-
   // assert(SCPreferencesCommitChanges());
   assert(found&&iface);
   if(rp){
@@ -266,7 +268,6 @@ static SCNetworkInterfaceRef geten0(CFArrayRef *rp){
   }
   CFRelease(a);
   return NULL;
-
 }
 
 void check_iface(){
@@ -374,54 +375,48 @@ static void cf_plist(const Boolean already_on){
   check8tr(root,"Model","J96AP");
   check1nt(root,"__VERSION__",20191120);
 
+  // $uuidSet
   const char *const prefix="/Sets/";
   const size_t prefixL=strlen(prefix);
   const char *uuidSet=CFStringGetCStringPtr(checkTyp(root,"CurrentSet",CFStringGetTypeID()),kCFStringEncodingASCII);
   assert(uuidSet&&0==strncmp(prefix,uuidSet,prefixL));
   check_uuid((uuidSet+=prefixL));
 
+  // $dSet
   const CFDictionaryRef dSet=checkTyp(checkTyp(root,
     "Sets",CFDictionaryGetTypeID()),
     uuidSet,CFDictionaryGetTypeID());
   check8tr(dSet,"UserDefinedName",SSID);
 
+  // $pNetwork
   const CFDictionaryRef pNetwork=checkTyp(dSet,"Network",CFDictionaryGetTypeID());
   checkTyp(one_man_army(pNetwork,"Interface","en0","AirPort",NULL),"JoinMode",CFStringGetTypeID());
-  // CFDictionaryRef pLoop=pNetwork;
-  // for( const char **sp=(const char*[]){"Interface","en0","AirPort",NULL}; *sp; ++sp ){
-  //   pLoop=checkTyp(pLoop,*sp,CFDictionaryGetTypeID());
-  //   assert(CFDictionaryGetCount(pLoop)==1);
-  // }
-  // checkTyp(pLoop,"JoinMode",CFStringGetTypeID());
-
   const CFArrayRef srvOrd=checkTyp(one_man_army(pNetwork,"Global","IPv4",NULL),"ServiceOrder",CFArrayGetTypeID());
-  // pLoop=pNetwork;
-  // for( const char **sp=(const char*[]){"Global","IPv4",NULL}; *sp; ++sp ){
-  //   pLoop=checkTyp(pLoop,*sp,CFDictionaryGetTypeID());
-  //   assert(CFDictionaryGetCount(pLoop)==1);
-  // }
-  // pLoop=checkTyp(pLoop,"ServiceOrder",CFArrayGetTypeID());
 
+  // $uuidNS
   assert(CFArrayGetCount(srvOrd)==5);
   const CFStringRef uuidNSboxed=CFArrayGetValueAtIndex(srvOrd,2);
   assert(uuidNSboxed&&CFGetTypeID(uuidNSboxed)==CFStringGetTypeID());
   const char *const uuidNS=CFStringGetCStringPtr(uuidNSboxed,kCFStringEncodingASCII);
   check_uuid(uuidNS);
 
+  // $dNS
   const CFDictionaryRef dNS=checkTyp(checkTyp(root,
     "NetworkServices",CFDictionaryGetTypeID()),
     uuidNS,CFDictionaryGetTypeID());
 
+  // $dProxies
   const CFDictionaryRef dInterface=checkTyp(dNS,"Interface",CFDictionaryGetTypeID());
   assert(CFDictionaryGetCount(dInterface)==4);
   check8tr(dInterface,"DeviceName"     ,"en0"     );
   check8tr(dInterface,"Hardware"       ,"AirPort" );
   check8tr(dInterface,"Type"           ,"Ethernet");
   check8tr(dInterface,"UserDefinedName","Wi-Fi"   );
-
   const CFDictionaryRef dProxies=checkTyp(dNS,"Proxies",CFDictionaryGetTypeID());
 
-  if(already_on){ // on -> off
+  if(already_on){
+
+    // on -> off
     assert(CFDictionaryGetCount(dProxies)==8);
     check_on8_off2(dProxies,8);
     for(const char **sp=(const char*[]){
@@ -443,33 +438,33 @@ static void cf_plist(const Boolean already_on){
     }
     assert(CFDictionaryGetCount(dProxies)==2);
     check_on8_off2(dProxies,2);
-  }else{ // off -> on
-    assert(false);
-    // assert(CFDictionaryGetCount(dProxies)==2);
-    // check_on8_off2(dProxies,2);
-    // Add the following
-    // HTTPEnable  = 1
-    // HTTPPort    = PROXY_PORT
-    // HTTPProxy   = PROXY_IP
-    // HTTPSEnable = 1
-    // HTTPSPort   = PROXY_PORT
-    // HTTPSProxy  = PROXY_IP
-    // assert(CFDictionaryGetCount(dProxies)==8);
-    // check_on8_off2(dProxies,8);
+
+  }else{
+
+    // off -> on
+    assert(CFDictionaryGetCount(dProxies)==2);
+    check_on8_off2(dProxies,2);
+    add1nt(dProxies,"HTTPEnable",+1);
+    add1nt(dProxies,"HTTPPort",PROXY_PORT);
+    add8tr(dProxies,"HTTPProxy",PROXY_IP);
+    add1nt(dProxies,"HTTPSEnable",+1);
+    add1nt(dProxies,"HTTPSPort",PROXY_PORT);
+    add8tr(dProxies,"HTTPSProxy",PROXY_IP);
+    assert(CFDictionaryGetCount(dProxies)==8);
+    check_on8_off2(dProxies,8);
+
   }
 
   // End modification (pseudocode plist.txt)
   assert(CFPropertyListIsValid(plist,kCFPropertyListBinaryFormat_v1_0));
 
   // Write
-  // assert(0==access(PLIST,W_OK));
-  // CFIndex CFPropertyListWrite(CFPropertyListRef propertyList, CFWriteStreamRef stream, CFPropertyListFormat format, CFOptionFlags options, CFErrorRef *error);
-
   // fileURL=path2url("/private/var/mobile/tmp.plist");
   fileURL=path2url(PLIST);
   CFWriteStreamRef wStream=CFWriteStreamCreateWithFile(kCFAllocatorDefault,fileURL);
   assert(wStream&&CFGetTypeID(wStream)==CFWriteStreamGetTypeID());
-  assert(0==getuid());
+  assert(0==geteuid());
+  (0==getuid())?assert(0==access(PLIST,W_OK)):0; // W_OK for root, fails for mobile+setuid
   assert(CFWriteStreamOpen(wStream));
   assert(1<=CFPropertyListWrite(
     plist,
@@ -501,18 +496,35 @@ static void cf_plist(const Boolean already_on){
   // Dealloc
   CFRelease(plist);
 
-  CFArrayRef arr=NULL;
-  const SCNetworkInterfaceRef en0=geten0(&arr);
-  assert(arr&&en0&&0==cf2c_strcmp("en0",SCNetworkInterfaceGetBSDName(en0)));
-  assert(SCNetworkInterfaceForceConfigurationRefresh(en0));
-  CFRelease(arr);
-
 }
 
 void on2off(){
   cf_plist(true);
 }
 
-/*void off2on(){
+void off2on(){
   cf_plist(false);
-}*/
+}
+
+// https://iphonedevwiki.net/index.php/MobileWiFi.framework
+// https://github.com/davidmurray/ios-reversed-headers
+// #include "ios-reversed-headers/MobileWiFi/MobileWiFi.h"
+void cf_force_refresh(){
+
+  // No effect
+  CFArrayRef arr=NULL;
+  const SCNetworkInterfaceRef en0=geten0(&arr);
+  assert(arr&&en0&&0==cf2c_strcmp("en0",SCNetworkInterfaceGetBSDName(en0)));
+  assert(SCNetworkInterfaceForceConfigurationRefresh(en0));
+  CFRelease(arr);
+
+  // const WiFiManagerRef manager=WiFiManagerClientCreate(kCFAllocatorDefault,0);
+  // CFShow(manager);
+  // const CFArrayRef devices=WiFiManagerClientCopyDevices(manager);
+  // CFShow(devices);
+  // eprintf("%ld\n",CFArrayGetCount(devices));
+  // eprintf("\n");
+  // CFRelease(devices);
+  // CFRelease(manager);
+
+}

@@ -1,3 +1,7 @@
+#if !defined __OBJC__ || defined __cplusplus
+#error
+#endif
+
 // Not working
 // #import <os/availability.h>
 // #define __OS_AVAILABILITY__
@@ -23,7 +27,7 @@
   printf("%d\n",proxySettings.HTTPEnabled);
 }}*/
 
-void ns_plist(const char *const path){@autoreleasepool{
+/*void ns_plist(const char *const path){@autoreleasepool{
 
   // Check if path exists
   // Check if path is readable
@@ -53,4 +57,12 @@ void ns_plist(const char *const path){@autoreleasepool{
   //   NSPropertyListBinaryFormat_v1_0,
   //   fmt);
 
-}}
+}}*/
+
+// Nonexist? macOS only?
+// #import <CoreWLAN/CoreWLAN.h>
+/*void ns_force_refresh(){@autoreleasepool{
+  CWInterface *const cwInterface=[[CWInterface alloc]initWithInterfaceName:@"en0"];
+  assert(cwInterface);
+  [cwInterface disassociate];
+}}*/

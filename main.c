@@ -1,25 +1,36 @@
-// /opt/theos/sdks/iPhoneOS14.4.sdk/**/*.h
+// https://gcc.gnu.org/onlinedocs/cpp/Standard-Predefined-Macros.html
+#if defined __OBJC__ || defined __cplusplus
+#error
+#endif
 
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
-#include "./status.h"
+#include "./c.h"
 
-// /Library/Preferences: symbolic link to ../private/var/preferences
-// /Library/Preferences/SystemConfiguration/preferences.plist
-// /private/var/preferences/SystemConfiguration/preferences.plist
+#define GREEN "\033[32m"
+#define RED   "\033[31m"
+#define RESET "\033[0m"
 #define eprintf(...) fprintf(stderr,__VA_ARGS__)
 
-Status proxy_status();
-void check_iface();
-void on2off();
-// void off2on();
+// m.m
+// extern void ns_force_refresh();
 
-static void buildinfo(){
-  eprintf( "bld@" /*__DATE__*/ __TIME__ "\n" );
+static void assertion_not_disabled(){
+  int t=8;
+  assert((t=t*t));
+  if(t!=64){
+    eprintf("assertion disabled - side effects not applied - abort\n");
+    abort();
+  }
+}
+
+static void ver(){
+  eprintf( "bld@" __TIME__ " - " __DATE__ "\n" );
   time_t rawtime=0;
   time(&rawtime);
   struct tm *timeptr=localtime(&rawtime);
@@ -31,54 +42,64 @@ static void buildinfo(){
           timeptr->tm_sec);
 }
 
-static void assertion_not_disabled(){
-  int t=8;
-  assert((t=t*t));
-  if(t!=64){
-    eprintf("assertion disabled - side effects not applied - abort\n");
-    abort();
-  }
+static void hint_manual_op(){
+  eprintf("To make changes take effect:\n");
+  // https://support.apple.com/lt-lt/guide/mdm/mdm90f60c1ce/web
+  eprintf("(1) Disable WLAN in com.apple.Preferences \n");
+  // https://developer.apple.com/design/human-interface-guidelines/ios/bars/status-bars/
+  eprintf("(2) Wait until Wi-Fi icon disappears from status bar\n");
+  eprintf("(3) Enable WLAN in com.apple.Preferences\n");
+  eprintf("(4) Wait until Wi-Fi icon reappears on status bar\n");
 }
 
-// int main(int argc,char *argv[],char *envp[]){
-int main(){
-
-  // eprintf("\n");
+// https://github.com/Un1Gfn-electronics/df/search?q=unused
+// https://clang.llvm.org/docs/AttributeReference.html#maybe-unused-unused
+int main(int argc,char *argv[],__attribute__((unused))char *envp[]){
 
   assertion_not_disabled();
-  buildinfo();
-  eprintf("\n");
+
+  static const char *const arg="ver";
+  if(argc==2){
+    assert(0==strcmp(arg,argv[1]));
+    ver();
+    exit(0);
+  }
+  assert(argc==1);
+  eprintf("Run \"%s %s\" for build info\n",argv[0],arg);
 
   check_iface();
-
-  const Status s=proxy_status();
-  switch(s){
+  switch(proxy_status()){
 
   case DISCONNECTED:
-    eprintf("disconnected\n");
-    return 0;
+    eprintf("Disconnected\n");
     break;
 
   case CONNECTED_OFF:
-    eprintf("proxy is off\n");
-    return 0;
+    eprintf("Proxy is off\n");
+    eprintf(GREEN"Turning on proxy ..."RESET"\n");
+    off2on();
+    cf_force_refresh(); // No effect
+    hint_manual_op();
+    // assert(proxy_status()==CONNECTED_ON);
+    // eprintf("proxy is turned off\n");
     break;
 
   case CONNECTED_ON :
-    eprintf("proxy is on\n");
+    eprintf("Proxy is on\n");
+    eprintf(RED"Turning off proxy ..."RESET"\n");
     on2off();
-    // eprintf("turning off proxy ...\n");
+    cf_force_refresh(); // No effect
+    hint_manual_op();
     // assert(proxy_status()==CONNECTED_OFF);
-    // eprintf("... done\n");
-    return 0;
+    // eprintf("proxy is turned off\n");
     break;
 
   default:
     assert(false);
     break;
+
   }
 
-  eprintf("\n");
   return 0;
 
 }
