@@ -5,6 +5,7 @@
 
 #include "./c.h" // Self
 #include "./secret.h"
+#include "./privilege.h"
 
 #include <netinet/in.h> // INET6_ADDRSTRLEN
 #include <stdarg.h> // stdarg(3) one_man_army()
@@ -463,6 +464,7 @@ static void cf_plist(const Boolean already_on){
   fileURL=path2url(PLIST);
   CFWriteStreamRef wStream=CFWriteStreamCreateWithFile(kCFAllocatorDefault,fileURL);
   assert(wStream&&CFGetTypeID(wStream)==CFWriteStreamGetTypeID());
+  privilege_escalate();
   assert(0==geteuid());
   (0==getuid())?assert(0==access(PLIST,W_OK)):0; // W_OK for root, fails for mobile+setuid
   assert(CFWriteStreamOpen(wStream));
@@ -474,6 +476,7 @@ static void cf_plist(const Boolean already_on){
     &error));
   assert(!error);
   CFWriteStreamClose(wStream);CFRelease(wStream);wStream=NULL;
+  privilege_drop();
   CFRelease(fileURL);fileURL=NULL;
 
   // fileURL=path2url("/private/var/mobile/tmp_cfdata.plist");
@@ -509,7 +512,7 @@ void off2on(){
 // https://iphonedevwiki.net/index.php/MobileWiFi.framework
 // https://github.com/davidmurray/ios-reversed-headers
 // #include "ios-reversed-headers/MobileWiFi/MobileWiFi.h"
-void cf_force_refresh(){
+/*void cf_force_refresh(){
 
   // No effect
   CFArrayRef arr=NULL;
@@ -527,4 +530,4 @@ void cf_force_refresh(){
   // CFRelease(devices);
   // CFRelease(manager);
 
-}
+}*/

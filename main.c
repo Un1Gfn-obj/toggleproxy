@@ -11,6 +11,7 @@
 #include <time.h>
 
 #include "./c.h"
+#include "./privilege.h"
 
 #define GREEN "\033[32m"
 #define RED   "\033[31m"
@@ -57,6 +58,7 @@ static void hint_manual_op(){
 int main(int argc,char *argv[],__attribute__((unused))char *envp[]){
 
   assertion_not_disabled();
+  privilege_drop();
 
   static const char *const arg="ver";
   if(argc==2){
@@ -78,7 +80,7 @@ int main(int argc,char *argv[],__attribute__((unused))char *envp[]){
     eprintf("Proxy is off\n");
     eprintf(GREEN"Turning on proxy ..."RESET"\n");
     off2on();
-    cf_force_refresh(); // No effect
+    // cf_force_refresh();
     hint_manual_op();
     // assert(proxy_status()==CONNECTED_ON);
     // eprintf("proxy is turned off\n");
@@ -88,7 +90,7 @@ int main(int argc,char *argv[],__attribute__((unused))char *envp[]){
     eprintf("Proxy is on\n");
     eprintf(RED"Turning off proxy ..."RESET"\n");
     on2off();
-    cf_force_refresh(); // No effect
+    // cf_force_refresh();
     hint_manual_op();
     // assert(proxy_status()==CONNECTED_OFF);
     // eprintf("proxy is turned off\n");

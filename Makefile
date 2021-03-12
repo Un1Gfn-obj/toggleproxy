@@ -8,6 +8,7 @@ messages:=no
 TOOL_NAME = toggleproxy
 
 # toggleproxy_FILES += m.m
+toggleproxy_FILES += privilege.c
 toggleproxy_FILES += c.c
 toggleproxy_FILES += main.c
 
