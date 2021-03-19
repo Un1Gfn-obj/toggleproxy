@@ -1,6 +1,7 @@
 [GCC Macro Pitfalls](https://gcc.gnu.org/onlinedocs/cpp/Macro-Pitfalls.html#Macro-Pitfalls)
 
-[FreeBSD Manual Pages](https://www.freebsd.org/cgi/man.cgi)
+[Mac OS X Manual Pages](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/printf.3.html)
+<s>[FreeBSD Manual Pages](https://www.freebsd.org/cgi/man.cgi)</s>
 
 [PropertyList-1.0.dtd](https://www.apple.com/DTDs/PropertyList-1.0.dtd)
 
